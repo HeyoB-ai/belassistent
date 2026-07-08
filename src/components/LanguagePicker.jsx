@@ -1,37 +1,41 @@
-import { LANGUAGES, CHOOSE_TITLES, useLang } from '../i18n.js';
+import { LANGUAGES, CHOOSE_TITLE, CHOOSE_SUBTITLE, useLang } from '../i18n.js';
 
-// Eerste view: schermvullende taalkeuze. Geen Nederlandse (of andere) vaste UI —
-// alleen vlaggen + de taalnaam in de eigen taal, plus "kies je taal" in meerdere talen.
+// Eerste view: taalkeuze. Geen vaste UI-tekst in één taal — per rij de vlag,
+// de naam in eigen schrift (prominent) en de Engelse naam eronder (als houvast).
 export default function LanguagePicker() {
   const { setLang } = useLang();
 
   return (
     <div className="picker">
-      <div className="picker-titles">
-        {CHOOSE_TITLES.map((title, i) => (
-          <span key={i} className="picker-title">
-            {title}
-          </span>
-        ))}
+      <div className="picker-head">
+        <h1 className="picker-title">{CHOOSE_TITLE}</h1>
+        <p className="picker-subtitle">{CHOOSE_SUBTITLE}</p>
       </div>
 
-      <div className="picker-grid">
+      <ul className="lang-list">
         {LANGUAGES.map((l) => (
-          <button
-            key={l.code}
-            type="button"
-            className="lang-card"
-            onClick={() => setLang(l.code)}
-            dir={l.rtl ? 'rtl' : 'ltr'}
-            aria-label={l.nativeName}
-          >
-            <span className="lang-flag" aria-hidden="true">
-              {l.flag}
-            </span>
-            <span className="lang-name">{l.nativeName}</span>
-          </button>
+          <li key={l.code}>
+            <button
+              type="button"
+              className="lang-row"
+              onClick={() => setLang(l.code)}
+              dir={l.rtl ? 'rtl' : 'ltr'}
+              aria-label={l.englishName}
+            >
+              <span className="lang-flag" aria-hidden="true">
+                {l.flag}
+              </span>
+              <span className="lang-names">
+                <span className="lang-native">{l.nativeName}</span>
+                <span className="lang-english">{l.englishName}</span>
+              </span>
+              <span className="lang-chevron" aria-hidden="true">
+                ›
+              </span>
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

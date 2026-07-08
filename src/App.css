@@ -33,71 +33,97 @@ body {
   align-items: center;
   justify-content: center;
   padding: 32px 16px;
-  gap: 32px;
+  gap: 24px;
 }
 
-.picker-titles {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+.picker-head {
   text-align: center;
 }
 
 .picker-title {
-  color: var(--muted);
-  font-size: 1.05rem;
-}
-
-.picker-title:first-child {
   color: var(--accent);
   font-size: 1.6rem;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin: 0 0 6px;
 }
 
-.picker-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(130px, 1fr));
-  gap: 16px;
+.picker-subtitle {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.lang-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   width: 100%;
-  max-width: 460px;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.lang-card {
+.lang-row {
+  width: 100%;
   background: var(--card);
   border: 2px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 24px 12px;
+  padding: 14px 16px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
 }
 
-.lang-card:hover {
+.lang-row:hover {
   border-color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.18);
+  background: #f5f3ff;
+  transform: translateY(-1px);
 }
 
 .lang-flag {
-  font-size: 2.6rem;
+  font-size: 26px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
-.lang-name {
-  font-size: 1.05rem;
+.lang-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.lang-native {
+  font-size: 15px;
   font-weight: 600;
+  color: var(--text);
 }
 
-@media (min-width: 520px) {
-  .picker-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
+.lang-english {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.lang-chevron {
+  color: var(--muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+[dir='rtl'] .lang-row,
+.lang-row[dir='rtl'] {
+  text-align: right;
+}
+
+.lang-row[dir='rtl'] .lang-chevron {
+  transform: scaleX(-1);
 }
 
 /* ---------- App shell ---------- */

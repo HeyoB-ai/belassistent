@@ -1,28 +1,21 @@
 import { createContext, useContext, useState, createElement } from 'react';
 
-// Ondersteunde talen: vlag + eigen taalnaam. Arabisch is RTL.
+// Ondersteunde talen: vlag + naam in eigen schrift + Engelse naam. Arabisch is RTL.
 export const LANGUAGES = [
-  { code: 'nl', flag: '🇳🇱', nativeName: 'Nederlands' },
-  { code: 'tr', flag: '🇹🇷', nativeName: 'Türkçe' },
-  { code: 'ar', flag: '🇸🇦', nativeName: 'العربية', rtl: true },
-  { code: 'pl', flag: '🇵🇱', nativeName: 'Polski' },
-  { code: 'en', flag: '🇬🇧', nativeName: 'English' },
-  { code: 'es', flag: '🇪🇸', nativeName: 'Español' },
-  { code: 'fr', flag: '🇫🇷', nativeName: 'Français' },
-  { code: 'zh', flag: '🇨🇳', nativeName: '中文' },
+  { code: 'nl', flag: '🇳🇱', nativeName: 'Nederlands', englishName: 'Dutch' },
+  { code: 'tr', flag: '🇹🇷', nativeName: 'Türkçe', englishName: 'Turkish' },
+  { code: 'ar', flag: '🇸🇦', nativeName: 'العربية', englishName: 'Arabic', rtl: true },
+  { code: 'pl', flag: '🇵🇱', nativeName: 'Polski', englishName: 'Polish' },
+  { code: 'en', flag: '🇬🇧', nativeName: 'English', englishName: 'English' },
+  { code: 'es', flag: '🇪🇸', nativeName: 'Español', englishName: 'Spanish' },
+  { code: 'fr', flag: '🇫🇷', nativeName: 'Français', englishName: 'French' },
+  { code: 'zh', flag: '🇨🇳', nativeName: '中文', englishName: 'Chinese' },
 ];
 
-// "Kies je taal" in meerdere talen door elkaar — zodat iedereen het herkent.
-export const CHOOSE_TITLES = [
-  'Choose your language',
-  'Kies je taal',
-  'Dilinizi seçin',
-  'اختر لغتك',
-  'Wybierz język',
-  'Elige tu idioma',
-  'Choisissez votre langue',
-  '选择您的语言',
-];
+// Titel van het taalkeuze-scherm + een subtitel in meerdere talen door elkaar,
+// zodat iedereen het herkent ongeacht welke taal hij spreekt.
+export const CHOOSE_TITLE = 'Choose your language';
+export const CHOOSE_SUBTITLE = 'اختر لغتك · Elige tu idioma · Dilinizi seçin';
 
 export const TRANSLATIONS = {
   nl: {
