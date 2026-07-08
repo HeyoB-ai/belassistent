@@ -1,8 +1,13 @@
 # AI Belassistent
 
-Een webapp waarmee een AI-assistent namens jou een helpdesk belt. De AI voert het
-gesprek **volledig in het Nederlands** (via Twilio + Amazon Polly), en de eindsamenvatting
-krijg je terug in de taal die je zelf kiest (NL/TR/AR/PL/EN/ES/FR/ZH).
+Een **meertalige, taal-eerst** webapp waarmee een AI-assistent namens jou een helpdesk
+belt. De AI voert het gesprek **volledig in het Nederlands** (via Twilio + Amazon Polly),
+en de hele interface + eindsamenvatting zijn in de taal die je zelf kiest
+(NL/TR/AR/PL/EN/ES/FR/ZH, inclusief RTL voor Arabisch).
+
+De eerste view is een schermvullend **taalkeuze-scherm** (alleen vlaggen + taalnaam in de
+eigen taal). Daarna is de volledige UI in die taal (uit `src/i18n.js`); rechtsboven zit
+altijd een knop om van taal te wisselen.
 
 ## Hoe het werkt
 
@@ -84,7 +89,9 @@ belassistent/
 │   ├── main.jsx
 │   ├── App.jsx
 │   ├── App.css
+│   ├── i18n.js
 │   └── components/
+│       ├── LanguagePicker.jsx
 │       ├── CallForm.jsx
 │       ├── CallTranscript.jsx
 │       └── CallSummary.jsx
