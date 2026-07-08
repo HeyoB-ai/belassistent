@@ -252,6 +252,33 @@ body {
   margin: 0;
 }
 
+.field-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 2px 0 0;
+}
+
+/* Scheidingslijn met kopje voor de optionele velden */
+.optional-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.optional-divider::before,
+.optional-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 /* ---------- Buttons ---------- */
 .btn-primary {
   background: var(--accent);

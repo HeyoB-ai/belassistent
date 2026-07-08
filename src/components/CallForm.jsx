@@ -7,6 +7,8 @@ export default function CallForm({ onSubmit, busy }) {
   const [company, setCompany] = useState('');
   const [helpdeskNumber, setHelpdeskNumber] = useState('');
   const [task, setTask] = useState('');
+  const [goal, setGoal] = useState('');
+  const [email, setEmail] = useState('');
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -15,6 +17,8 @@ export default function CallForm({ onSubmit, busy }) {
       company: company.trim(),
       helpdesk_number: helpdeskNumber.trim(),
       task: task.trim(),
+      goal: goal.trim(),
+      email: email.trim(),
     });
   }
 
@@ -58,6 +62,37 @@ export default function CallForm({ onSubmit, busy }) {
             value={task}
             onChange={(e) => setTask(e.target.value)}
           />
+        </div>
+
+        {/* Optionele velden */}
+        <div className="optional-divider">
+          <span>{t.optionalHeader}</span>
+        </div>
+
+        <div className="field">
+          <label htmlFor="goal">{t.goalLabel}</label>
+          <textarea
+            id="goal"
+            rows={3}
+            dir={isRtl ? 'rtl' : 'ltr'}
+            placeholder={t.goalPlaceholder}
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+          />
+          <p className="field-hint">{t.goalHint}</p>
+        </div>
+
+        <div className="field">
+          <label htmlFor="email">{t.emailLabel}</label>
+          <input
+            id="email"
+            type="email"
+            dir="ltr"
+            placeholder={t.emailPlaceholder}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <p className="field-hint">{t.emailHint}</p>
         </div>
 
         <p className="form-hint">{t.formHint}</p>

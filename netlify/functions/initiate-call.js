@@ -21,6 +21,8 @@ export default async function handler(req) {
   const helpdeskNumber = (body.helpdesk_number || '').trim();
   const task = (body.task || '').trim();
   const language = (body.language || 'nl').trim();
+  const goal = (body.goal || '').trim();
+  const email = (body.email || '').trim();
 
   if (!company || !helpdeskNumber || !task) {
     return json({ error: 'company, helpdesk_number en task zijn verplicht.' }, 400);
@@ -58,6 +60,8 @@ export default async function handler(req) {
     company,
     task,
     language,
+    goal,
+    email,
     messages: [],
     status: 'initiated',
     outcome: null,

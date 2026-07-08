@@ -117,7 +117,14 @@ export default async function handler(req) {
 // --- Claude ---------------------------------------------------------------
 
 function buildSystemPrompt(state) {
-  return `Je bent een professionele AI-belassistent die namens een gebruiker naar een helpdesk belt. Het gesprek verloopt volledig in het Nederlands. De taak van de gebruiker is: ${state.task} (bedrijf: ${state.company}). Voer het gesprek beleefd, kort en doelgericht. Stel je voor als AI die namens een klant belt. Reageer natuurlijk op wat de medewerker zegt. Geef per beurt alleen wat je zou zeggen, kort. Als het doel bereikt is of het gesprek logisch eindigt, geef dan als laatste regel exact het woord [EINDE] zodat het systeem weet op te hangen.`;
+  const goalInstructie = state.goal
+    ? `Het uiteindelijke doel van de gebruiker is: ${state.goal}. Werk gericht naar dit doel toe en neem geen genoegen met minder; als de medewerker iets biedt dat het doel niet haalt, vraag beleefd door naar een betere oplossing of alternatief. `
+    : '';
+  const emailInstructie = state.email
+    ? `Als er een bevestiging, mail of document verstuurd kan worden, vraag de medewerker dit te sturen naar: ${state.email}. `
+    : '';
+
+  return `Je bent een professionele AI-belassistent die namens een gebruiker naar een helpdesk belt. Het gesprek verloopt volledig in het Nederlands. De taak van de gebruiker is: ${state.task} (bedrijf: ${state.company}). ${goalInstructie}${emailInstructie}Voer het gesprek beleefd, kort en doelgericht. Stel je voor als AI die namens een klant belt. Reageer natuurlijk op wat de medewerker zegt. Geef per beurt alleen wat je zou zeggen, kort. Als het gewenste doel bereikt is of het gesprek logisch eindigt, geef dan als laatste regel exact [EINDE].`;
 }
 
 async function callClaude(anthropic, system, messages) {
