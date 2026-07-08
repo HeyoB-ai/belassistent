@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.local
+.netlify/
+
+# Oud testscript met hardgecodeerde Twilio-credentials — niet pushen
+bel-test.js
