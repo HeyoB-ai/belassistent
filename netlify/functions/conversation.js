@@ -25,12 +25,14 @@ function fillerUrl(i) {
   return `${process.env.URL}/api/filler?voice=${VOICE_AI}&i=${i}`;
 }
 
-// Loop-beveiliging tegen eindeloos keuzemenu / stilte.
-const MAX_DTMF = 5; // na zoveel toetskeuzes zonder medewerker: probeer '0', anders stoppen.
-const MAX_LISTEN = 6; // na zoveel stiltes zonder enige reactie: netjes ophangen.
+// Instelbare loop-beveiliging via env vars (per-request gelezen, met defaults).
+function intEnv(name, def) {
+  const v = parseInt(process.env[name] || '', 10);
+  return Number.isFinite(v) && v > 0 ? v : def;
+}
 
-// Bouwt een <Gather> die naar de helpdesk luistert (spraak én DTMF). Menu's kennen
-// pauzes tussen opties, dus daarvoor gebruiken we 'auto'; in een mensgesprek is '1' snappy.
+// Bouwt een <Gather> die naar de helpdesk luistert (spraak én DTMF). De speechTimeout
+// is instelbaar via de SPEECH_TIMEOUT env var (default 'auto' — vangt hele menu-opties op).
 function addListenGather(vr, webhookUrl, speechTimeout = 'auto') {
   vr.gather({
     input: 'dtmf speech',
@@ -95,44 +97,35 @@ export default async function handler(req) {
   // Voice-webhook: het gesprek loopt.
   state.status = 'in-progress';
 
-  const step = new URL(req.url).searchParams.get('step');
+  // Instelbaar via env (per-request; defaults: auto / 5 / 6).
+  const speechTimeout = process.env.SPEECH_TIMEOUT || 'auto';
+  const maxDtmf = intEnv('MAX_DTMF', 5);
+  const maxListen = intEnv('MAX_LISTEN', 6);
 
   // ── LUISTER-STAP ─────────────────────────────────────────────────────────
-  // Op verbinding (nog geen berichten) of na een stilte (step=listen): NIET praten,
-  // maar luisteren. Veel helpdesks starten meteen met een IVR-keuzemenu — daar mogen
-  // we niet overheen praten. We vangen zowel spraak als DTMF op.
-  if (step === 'listen' || (!speech && step !== 'respond' && state.messages.length === 0)) {
+  // Geen spraak (verbinding net open, of stilte-herhaling via ?step=listen): NIET
+  // praten maar luisteren. Veel helpdesks starten meteen met een IVR-keuzemenu — daar
+  // mogen we niet overheen praten. We vangen zowel spraak als DTMF op.
+  if (!speech) {
     state.listenCount = (state.listenCount || 0) + 1;
-    if (state.listenCount > MAX_LISTEN) {
+    if (state.listenCount > maxListen) {
       return twiml(hangupResponse('Ik krijg helaas geen reactie. Ik probeer het later opnieuw. Tot ziens.'));
     }
     await store.setJSON(callSid, state);
 
     const vr = new VoiceResponse();
-    addListenGather(vr, webhookUrl, 'auto');
+    addListenGather(vr, webhookUrl, speechTimeout);
     // Stilte binnen de gather → opnieuw luisteren (begrensd door listenCount).
     vr.redirect({ method: 'POST' }, `${webhookUrl}?step=listen`);
     return twiml(vr.toString());
   }
 
-  // ── FILLER-STAP ──────────────────────────────────────────────────────────
-  // Er is spraak binnen (menu of medewerker): speel DIRECT een kort, gecachet
-  // vulwoord af (geen generatietijd) en ga via <Redirect> naar de respond-stap,
-  // waar Claude beslist wat te doen. Zo geen dode lucht.
-  if (speech && step !== 'respond') {
-    state.messages.push({ speaker: 'agent', text: speech });
-    state.listenCount = 0; // reactie ontvangen → stilte-teller resetten
-    await store.setJSON(callSid, state);
+  // ── SPRAAK BINNEN: Claude beslist menu vs. mens ──────────────────────────
+  // We roepen Claude eerst aan; daarna weten we of het een keuzemenu is ([DTMF:X])
+  // of een echt gesprek, en kiezen we wel/geen vulwoord.
+  state.messages.push({ speaker: 'agent', text: speech });
+  state.listenCount = 0; // reactie ontvangen → stilte-teller resetten
 
-    const vr = new VoiceResponse();
-    vr.play(fillerUrl(Math.floor(Math.random() * FILLER_COUNT)));
-    vr.redirect({ method: 'POST' }, `${webhookUrl}?step=respond`);
-    return twiml(vr.toString());
-  }
-
-  // ── RESPOND-STAP ─────────────────────────────────────────────────────────
-  // Het agent-bericht is al opgeslagen in de filler-stap. Claude beslist per beurt:
-  // keuzemenu ([DTMF:X]) of een echt gesprek.
   const claudeMessages = [
     { role: 'user', content: '[De verbinding met de helpdesk is tot stand gekomen.]' },
   ];
@@ -153,31 +146,33 @@ export default async function handler(req) {
     return twiml(hangupResponse('Er ging iets mis met de assistent. Ik hang op. Tot ziens.'));
   }
 
-  // ── Keuzemenu? Verstuur DTMF. ────────────────────────────────────────────
+  // ── Keuzemenu? Verstuur DTMF — ZONDER vulwoord. ──────────────────────────
+  // Tegen een geautomatiseerd menu zegt een mens ook niks; de filler is daar
+  // onnatuurlijk en kan het IVR-systeem storen. Dus: alleen de toon + luisteren.
   const dtmfMatch = reply.match(/\[DTMF:\s*([0-9*#]+)\]/i);
   if (dtmfMatch) {
     state.dtmfCount = (state.dtmfCount || 0) + 1;
 
     // Loop-beveiliging: te lang in keuzemenu's.
-    if (state.dtmfCount > MAX_DTMF + 1) {
+    if (state.dtmfCount > maxDtmf + 1) {
       state.messages.push({ speaker: 'system', text: 'Geen medewerker bereikt via het keuzemenu.' });
       await store.setJSON(callSid, state);
       return twiml(hangupResponse('Het lukt helaas niet om via het keuzemenu een medewerker te bereiken. Ik probeer het later opnieuw. Tot ziens.'));
     }
     // Laatste redmiddel: probeer de operator (meestal 0).
-    const tone = state.dtmfCount > MAX_DTMF ? '0' : dtmfMatch[1];
+    const tone = state.dtmfCount > maxDtmf ? '0' : dtmfMatch[1];
 
     state.messages.push({ speaker: 'ai', text: `Keuzemenu — toets ${tone} ingedrukt.` });
     await store.setJSON(callSid, state);
 
     const vr = new VoiceResponse();
-    vr.play({ digits: tone }); // stuurt de DTMF-toon naar de helpdesk
-    addListenGather(vr, webhookUrl, 'auto'); // luister naar het volgende menu/antwoord
+    vr.play({ digits: tone }); // stuurt de DTMF-toon naar de helpdesk (geen filler)
+    addListenGather(vr, webhookUrl, speechTimeout); // luister naar het volgende menu/antwoord
     vr.redirect({ method: 'POST' }, `${webhookUrl}?step=listen`);
     return twiml(vr.toString());
   }
 
-  // ── Echt gesprek: normaal spraakantwoord. ────────────────────────────────
+  // ── Echt gesprek: vulwoord (masker) + spraakantwoord. ────────────────────
   state.dtmfCount = 0; // medewerker bereikt → menu-teller resetten
   const done = /\[EINDE\]/i.test(reply);
   const spoken = reply.replace(/\[EINDE\]/gi, '').trim() || 'Dank u wel. Tot ziens.';
@@ -186,13 +181,13 @@ export default async function handler(req) {
   await store.setJSON(callSid, state);
 
   const vr = new VoiceResponse();
+  vr.play(fillerUrl(Math.floor(Math.random() * FILLER_COUNT))); // vulwoord: alleen bij mensgesprek
   vr.play(speakUrl(spoken));
 
   if (done) {
     vr.hangup();
   } else {
-    // Mensgesprek: '1' is snappy zodat de beurt snel teruggaat na een stilte.
-    addListenGather(vr, webhookUrl, '1');
+    addListenGather(vr, webhookUrl, speechTimeout);
     vr.play(speakUrl('Ik hoor niets meer. Bedankt en tot ziens.'));
     vr.hangup();
   }

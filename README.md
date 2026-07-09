@@ -54,6 +54,14 @@ altijd een knop om van taal te wisselen.
    | `ELEVENLABS_VOICE_AI` | Stem-ID (AI-assistent) — kies een NL/multilingual stem |
    | `ELEVENLABS_VOICE_AGENT` | Stem-ID (medewerker-simulatie, optioneel) |
 
+   Optionele gesprek-tuning (met defaults):
+
+   | Variabele | Default | Wat het doet |
+   | --------- | ------- | ------------ |
+   | `SPEECH_TIMEOUT` | `auto` | `speechTimeout` van de `<Gather>`. `auto` vangt hele IVR-menu-opties op; `1` / `1.5` maakt de beurt-overgang bij mensgesprekken sneller. |
+   | `MAX_DTMF` | `5` | Max toetskeuzes zonder medewerker; daarna probeert de AI `0` (operator) en hangt anders netjes op. |
+   | `MAX_LISTEN` | `6` | Max luisterbeurten bij aanhoudende stilte voordat de AI netjes ophangt. |
+
    > `URL` hoef je **niet** te zetten: Netlify vult die automatisch met de deploy-URL,
    > waarmee de app de Twilio-webhook-URL opbouwt.
 
