@@ -233,6 +233,8 @@ Elke beurt hoor je audio van de kant die je belt. Bepaal eerst wat je hoort:
 
 ${referentieInstructie}${goalInstructie}${emailInstructie}
 
+Als je een referentienummer, klantnummer of e-mailadres noemt, zet het duidelijk en op zichzelf, bijvoorbeeld "Het klantnummer is: 1439812202604." of "Het e-mailadres is: marcel@vos.nl." Schrijf cijferreeksen gewoon aaneengesloten en e-mailadressen gewoon met @ en punt — haal ze zelf NIET uit elkaar; het systeem zorgt voor een duidelijke uitspraak.
+
 Voer het gesprek beleefd, kort en doelgericht. Houd antwoorden kort, zoals in een echt telefoongesprek, meestal één of twee zinnen. Reageer natuurlijk op wat de medewerker zegt. Geef per beurt alleen wat je zou zeggen, kort. Als het gewenste doel bereikt is of het gesprek logisch eindigt, geef dan als laatste regel exact [EINDE].`;
 }
 

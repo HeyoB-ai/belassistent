@@ -9,10 +9,65 @@
 const DEFAULT_VOICE = process.env.ELEVENLABS_VOICE_AI || '21m00Tcm4TlvDq8ikWAM';
 const BASE_URL = process.env.ELEVENLABS_BASE_URL || 'https://api.elevenlabs.io';
 
+// ── Uitspraak-normalisatie ────────────────────────────────────────────────
+// Bereidt tekst voor op natuurlijke uitspraak in het Nederlands: lange cijferreeksen
+// cijfer-voor-cijfer, e-mailadressen met "at"/"punt" en de extensie gespeld. Dit raakt
+// ALLEEN de uitspraak — het transcript in de app toont de originele tekst.
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
+
+// Placeholder-wrappers met control-tekens (komen niet voor in echte tekst en de
+// cijfer-stap raakt ze niet). NUL = \x00, STX = \x02.
+const PH_OPEN = '\x00';
+const PH_CLOSE = '\x02';
+const PH_RESTORE = /\x00(\d+)\x02/g;
+
+function spellLetters(s) {
+  return s.split('').join(' ');
+}
+
+// Lange cijferreeks -> losse cijfers, gegroepeerd per 3 met een komma (lichte pauze).
+function spokenDigits(digits) {
+  const chars = digits.split('');
+  const groups = [];
+  for (let i = 0; i < chars.length; i += 3) {
+    groups.push(chars.slice(i, i + 3).join(' '));
+  }
+  return groups.join(', ');
+}
+
+// "marcel@vos.nl" -> "marcel at vos punt n l"
+function spokenEmail(email) {
+  const at = email.indexOf('@');
+  const local = email.slice(0, at).replace(/\./g, ' punt ');
+  const parts = email.slice(at + 1).split('.');
+  const domain = parts
+    .map((p, i) => (i === parts.length - 1 ? spellLetters(p) : p)) // extensie spellen
+    .join(' punt ');
+  return `${local} at ${domain}`;
+}
+
+function normalizeForSpeech(text) {
+  if (!text) return text;
+  const emails = [];
+  // 1) E-mailadressen eruit halen (botsvrije placeholder) zodat de cijfer-stap ze
+  //    niet raakt.
+  let out = text.replace(EMAIL_RE, (m) => {
+    emails.push(spokenEmail(m));
+    return PH_OPEN + (emails.length - 1) + PH_CLOSE;
+  });
+  // 2) Cijferreeksen van 4+ -> cijfer-voor-cijfer. Korte getallen (1-3) blijven met rust.
+  out = out.replace(/\d{4,}/g, (m) => spokenDigits(m));
+  // 3) E-mails terugzetten in gesproken vorm.
+  out = out.replace(PH_RESTORE, (_, i) => emails[Number(i)]);
+  return out;
+}
+
 export default async function handler(req) {
   const url = new URL(req.url);
-  // Tekst kort houden (< 1000 tekens) voor de snelste generatie.
-  const text = (url.searchParams.get('text') || '').slice(0, 1000);
+  // Tekst kort houden (< 1000 tekens) voor de snelste generatie, daarna normaliseren
+  // voor duidelijke uitspraak van cijferreeksen en e-mailadressen.
+  const raw = (url.searchParams.get('text') || '').slice(0, 1000);
+  const text = normalizeForSpeech(raw);
   const voice = url.searchParams.get('voice') || DEFAULT_VOICE;
 
   if (!text) {
