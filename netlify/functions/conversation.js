@@ -1,6 +1,8 @@
 import twilio from 'twilio';
 import Anthropic from '@anthropic-ai/sdk';
 import { getStore } from '@netlify/blobs';
+import { createHash } from 'node:crypto';
+import { normalizeForSpeech, generateTts } from '../shared/tts.js';
 
 // Snel model voor de losse gespreksbeurten; krachtiger model voor de eind-samenvatting.
 const MODEL_TURN = 'claude-haiku-4-5';
@@ -64,6 +66,28 @@ function momentResponse(webhookUrl) {
   vr.say({ voice: 'Polly.Ruben', language: 'nl-NL' }, 'Een moment alstublieft.');
   vr.redirect({ method: 'POST' }, `${webhookUrl}?step=retry`);
   return twiml(vr.toString());
+}
+
+// Echte fallback-keten voor een normaal antwoord: probeer ElevenLabs server-side; slaagt
+// dat, cache de audio en speel <Play> uit die cache. Faalt het (timeout/error/leeg), val
+// dan voor DEZE ene beurt terug op Twilio <Say> (Polly, NL-stem) met dezelfde tekst.
+// Zo is er altijd geluid en nooit dubbel (óf Play, óf Say).
+async function speakOrSay(vr, text, budgetLeftMs) {
+  const normalized = normalizeForSpeech(text).slice(0, 1000);
+  const timeoutMs = Math.min(5000, Math.max(1500, budgetLeftMs));
+  const ttsStart = Date.now();
+  const result = await generateTts(normalized, VOICE_AI, timeoutMs);
+  console.log(
+    `[conv] ElevenLabs(inline)=${Date.now() - ttsStart}ms ok=${result.ok}${result.ok ? '' : ` (${result.error})`}`
+  );
+
+  if (result.ok) {
+    const key = 'tts_' + createHash('sha1').update(`${VOICE_AI}\n${normalized}`).digest('hex');
+    await getStore('tts').set(key, result.audio);
+    vr.play(`${process.env.URL}/api/speak?key=${key}`);
+  } else {
+    vr.say({ voice: 'Polly.Ruben', language: 'nl-NL' }, normalized);
+  }
 }
 
 // Volledige taalnamen voor de samenvattingsprompt.
@@ -242,7 +266,8 @@ export default async function handler(req) {
   if (playFiller) {
     vr.play(fillerUrl(Math.floor(Math.random() * FILLER_COUNT))); // vulwoord: alleen bij vervolgbeurten
   }
-  vr.play(speakUrl(spoken));
+  // ElevenLabs met Polly-vangnet: nooit stilte als de TTS uitvalt (echte fallback-keten).
+  await speakOrSay(vr, spoken, 8500 - (Date.now() - turnStart));
 
   if (done) {
     vr.hangup();
