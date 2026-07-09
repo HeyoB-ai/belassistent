@@ -1,7 +1,6 @@
 import twilio from 'twilio';
 import Anthropic from '@anthropic-ai/sdk';
 import { getStore } from '@netlify/blobs';
-import { createHash } from 'node:crypto';
 import { normalizeForSpeech, generateTts } from '../shared/tts.js';
 
 // Snel model voor de losse gespreksbeurten; krachtiger model voor de eind-samenvatting.
@@ -68,26 +67,46 @@ function momentResponse(webhookUrl) {
   return twiml(vr.toString());
 }
 
-// Echte fallback-keten voor een normaal antwoord: probeer ElevenLabs server-side; slaagt
-// dat, cache de audio en speel <Play> uit die cache. Faalt het (timeout/error/leeg), val
-// dan voor DEZE ene beurt terug op Twilio <Say> (Polly, NL-stem) met dezelfde tekst.
-// Zo is er altijd geluid en nooit dubbel (óf Play, óf Say).
-async function speakOrSay(vr, text, budgetLeftMs) {
-  const normalized = normalizeForSpeech(text).slice(0, 1000);
-  const timeoutMs = Math.min(5000, Math.max(1500, budgetLeftMs));
-  const ttsStart = Date.now();
-  const result = await generateTts(normalized, VOICE_AI, timeoutMs);
-  console.log(
-    `[conv] ElevenLabs(inline)=${Date.now() - ttsStart}ms ok=${result.ok}${result.ok ? '' : ` (${result.error})`}`
-  );
-
-  if (result.ok) {
-    const key = 'tts_' + createHash('sha1').update(`${VOICE_AI}\n${normalized}`).digest('hex');
-    await getStore('tts').set(key, result.audio);
-    vr.play(`${process.env.URL}/api/speak?key=${key}`);
-  } else {
-    vr.say({ voice: 'Polly.Ruben', language: 'nl-NL' }, normalized);
+// Kleine, dependency-vrije hash voor de cache-sleutel (geen node:crypto — dat kan door
+// esbuild-bundling een runtime-stub worden die pas bij aanroep crasht).
+function ttsKey(voice, text) {
+  const s = `${voice}\n${text}`;
+  let h1 = 2166136261; // FNV-1a
+  let h2 = 5381; // djb2
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    h1 ^= c;
+    h1 = Math.imul(h1, 16777619);
+    h2 = Math.imul(h2, 33) ^ c;
   }
+  return `tts_${(h1 >>> 0).toString(16)}${(h2 >>> 0).toString(16)}_${s.length}`;
+}
+
+// Echte fallback-keten voor een normaal antwoord: probeer ElevenLabs server-side; slaagt
+// dat, cache de audio en speel <Play> uit die cache. Faalt het (timeout/error/leeg) OF
+// gaat er iets mis, val dan voor DEZE ene beurt terug op Twilio <Say> (Polly, NL-stem)
+// met dezelfde tekst. Zo is er altijd geluid en nooit dubbel (óf Play, óf Say).
+// Deze functie gooit NOOIT — ze eindigt altijd met een verb op de VoiceResponse.
+async function speakOrSay(vr, text, budgetLeftMs) {
+  const normalized = normalizeForSpeech(text).slice(0, 1000) || 'Momentje.';
+  try {
+    const timeoutMs = Math.min(5000, Math.max(1500, budgetLeftMs));
+    const ttsStart = Date.now();
+    const result = await generateTts(normalized, VOICE_AI, timeoutMs);
+    console.log(
+      `[conv] ElevenLabs(inline)=${Date.now() - ttsStart}ms ok=${result.ok}${result.ok ? '' : ` (${result.error})`}`
+    );
+    if (result.ok) {
+      const key = ttsKey(VOICE_AI, normalized);
+      await getStore('tts').set(key, result.audio);
+      vr.play(`${process.env.URL}/api/speak?key=${key}`);
+      return;
+    }
+  } catch (err) {
+    console.log(`[conv] speakOrSay-fout, val terug op Polly: ${err && err.stack ? err.stack : err}`);
+  }
+  // Vangnet: Polly met dezelfde tekst.
+  vr.say({ voice: 'Polly.Ruben', language: 'nl-NL' }, normalized);
 }
 
 // Volledige taalnamen voor de samenvattingsprompt.
@@ -110,7 +129,7 @@ const TERMINAL = ['completed', 'busy', 'no-answer', 'failed', 'canceled'];
 //   a) helpdesk neemt op, geen SpeechResult  -> AI opent het gesprek
 //   b) helpdesk zegt iets (SpeechResult)     -> AI reageert
 //   c) CallStatus is terminaal               -> genereer samenvatting
-export default async function handler(req) {
+async function handleTurn(req) {
   const params = await parseBody(req);
   const callSid = params.get('CallSid');
   const callStatus = params.get('CallStatus') || '';
@@ -165,6 +184,7 @@ export default async function handler(req) {
   if (!speech && step !== 'retry') {
     state.listenCount = (state.listenCount || 0) + 1;
     if (state.listenCount > maxListen) {
+      console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (geen reactie, ophangen)`);
       return twiml(hangupResponse('Ik krijg helaas geen reactie. Ik probeer het later opnieuw. Tot ziens.'));
     }
     await store.setJSON(callSid, state);
@@ -173,6 +193,7 @@ export default async function handler(req) {
     addListenGather(vr, webhookUrl, speechTimeout);
     // Stilte binnen de gather → opnieuw luisteren (begrensd door listenCount).
     vr.redirect({ method: 'POST' }, `${webhookUrl}?step=listen`);
+    console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (luisteren)`);
     return twiml(vr.toString());
   }
 
@@ -214,10 +235,12 @@ export default async function handler(req) {
       state.retryCount = 0;
       state.messages.push({ speaker: 'system', text: `AI te traag/onbereikbaar: ${err.message}` });
       await store.setJSON(callSid, state);
+      console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (Claude opgegeven, ophangen)`);
       return twiml(hangupResponse('Sorry, er is een technisch probleem. Ik probeer het later opnieuw. Tot ziens.'));
     }
     // Budget dreigt te verlopen: "moment" + retry (agent-bericht is nu opgeslagen).
     await store.setJSON(callSid, state);
+    console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (moment-fallback, retry)`);
     return momentResponse(webhookUrl);
   }
   state.retryCount = 0; // gelukt → retry-teller resetten
@@ -233,6 +256,7 @@ export default async function handler(req) {
     if (state.dtmfCount > maxDtmf + 1) {
       state.messages.push({ speaker: 'system', text: 'Geen medewerker bereikt via het keuzemenu.' });
       await store.setJSON(callSid, state);
+      console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (keuzemenu opgegeven, ophangen)`);
       return twiml(hangupResponse('Het lukt helaas niet om via het keuzemenu een medewerker te bereiken. Ik probeer het later opnieuw. Tot ziens.'));
     }
     // Laatste redmiddel: probeer de operator (meestal 0).
@@ -279,6 +303,29 @@ export default async function handler(req) {
 
   console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (spraak)`);
   return twiml(vr.toString());
+}
+
+// Laatste vangnet: welke fout dan ook tijdens de beurt → nooit een 502, altijd geldige
+// TwiML die het gesprek levend houdt (korte Polly-melding + luisteren).
+export default async function handler(req) {
+  try {
+    return await handleTurn(req);
+  } catch (err) {
+    console.log(`[conv] HANDLER-FOUT: ${err && err.stack ? err.stack : err}`);
+    const base = process.env.URL || '';
+    const vr = new VoiceResponse();
+    vr.say({ voice: 'Polly.Ruben', language: 'nl-NL' }, 'Een moment alstublieft.');
+    vr.gather({
+      input: 'dtmf speech',
+      language: 'nl-NL',
+      speechTimeout: 'auto',
+      action: `${base}/api/conversation`,
+      method: 'POST',
+    });
+    vr.redirect({ method: 'POST' }, `${base}/api/conversation?step=listen`);
+    console.log('[conv] einde (handler-fout vangnet)');
+    return twiml(vr.toString());
+  }
 }
 
 // --- Claude ---------------------------------------------------------------
