@@ -17,15 +17,17 @@ export default async function handler(req) {
     return json({ error: 'Ongeldige JSON in request body.' }, 400);
   }
 
+  const callerName = (body.callerName || '').trim();
   const company = (body.company || '').trim();
   const helpdeskNumber = (body.helpdesk_number || '').trim();
   const task = (body.task || '').trim();
   const language = (body.language || 'nl').trim();
   const goal = (body.goal || '').trim();
   const email = (body.email || '').trim();
+  const reference = (body.reference || '').trim();
 
-  if (!company || !helpdeskNumber || !task) {
-    return json({ error: 'company, helpdesk_number en task zijn verplicht.' }, 400);
+  if (!callerName || !company || !helpdeskNumber || !task) {
+    return json({ error: 'callerName, company, helpdesk_number en task zijn verplicht.' }, 400);
   }
 
   const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, URL } = process.env;
@@ -57,11 +59,13 @@ export default async function handler(req) {
   const store = getStore('calls');
   const state = {
     callSid: call.sid,
+    callerName,
     company,
     task,
     language,
     goal,
     email,
+    reference,
     messages: [],
     status: 'initiated',
     outcome: null,

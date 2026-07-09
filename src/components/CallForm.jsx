@@ -4,21 +4,25 @@ import { useLang } from '../i18n.js';
 export default function CallForm({ onSubmit, busy }) {
   const { t, isRtl } = useLang();
 
+  const [callerName, setCallerName] = useState('');
   const [company, setCompany] = useState('');
   const [helpdeskNumber, setHelpdeskNumber] = useState('');
   const [task, setTask] = useState('');
   const [goal, setGoal] = useState('');
   const [email, setEmail] = useState('');
+  const [reference, setReference] = useState('');
 
   function handleSubmit(e) {
     e.preventDefault();
     if (busy) return;
     onSubmit({
+      callerName: callerName.trim(),
       company: company.trim(),
       helpdesk_number: helpdeskNumber.trim(),
       task: task.trim(),
       goal: goal.trim(),
       email: email.trim(),
+      reference: reference.trim(),
     });
   }
 
@@ -26,6 +30,20 @@ export default function CallForm({ onSubmit, busy }) {
     <section className="card">
       <h2 className="form-title">{t.formTitle}</h2>
       <form onSubmit={handleSubmit} className="form">
+        <div className="field">
+          <label htmlFor="callerName">{t.callerNameLabel}</label>
+          <input
+            id="callerName"
+            type="text"
+            required
+            dir={isRtl ? 'rtl' : 'ltr'}
+            placeholder={t.callerNamePlaceholder}
+            value={callerName}
+            onChange={(e) => setCallerName(e.target.value)}
+          />
+          <p className="field-hint">{t.callerNameHint}</p>
+        </div>
+
         <div className="field">
           <label htmlFor="company">{t.companyLabel}</label>
           <input
@@ -93,6 +111,19 @@ export default function CallForm({ onSubmit, busy }) {
             onChange={(e) => setEmail(e.target.value)}
           />
           <p className="field-hint">{t.emailHint}</p>
+        </div>
+
+        <div className="field">
+          <label htmlFor="reference">{t.referenceLabel}</label>
+          <input
+            id="reference"
+            type="text"
+            dir={isRtl ? 'rtl' : 'ltr'}
+            placeholder={t.referencePlaceholder}
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+          />
+          <p className="field-hint">{t.referenceHint}</p>
         </div>
 
         <p className="form-hint">{t.formHint}</p>
