@@ -172,16 +172,23 @@ export default async function handler(req) {
     return twiml(vr.toString());
   }
 
-  // ── Echt gesprek: vulwoord (masker) + spraakantwoord. ────────────────────
+  // ── Echt gesprek: (vulwoord) + spraakantwoord. ───────────────────────────
   state.dtmfCount = 0; // medewerker bereikt → menu-teller resetten
   const done = /\[EINDE\]/i.test(reply);
   const spoken = reply.replace(/\[EINDE\]/gi, '').trim() || 'Dank u wel. Tot ziens.';
+
+  // Geen vulwoord op de allereerste gespreksbeurt: de introductie begint direct
+  // (geen "Even kijken" vooraf). Vanaf de vervolgbeurten maskeert de filler wel.
+  const playFiller = state.hasSpoken === true;
+  state.hasSpoken = true;
 
   state.messages.push({ speaker: 'ai', text: spoken });
   await store.setJSON(callSid, state);
 
   const vr = new VoiceResponse();
-  vr.play(fillerUrl(Math.floor(Math.random() * FILLER_COUNT))); // vulwoord: alleen bij mensgesprek
+  if (playFiller) {
+    vr.play(fillerUrl(Math.floor(Math.random() * FILLER_COUNT))); // vulwoord: alleen bij vervolgbeurten
+  }
   vr.play(speakUrl(spoken));
 
   if (done) {
