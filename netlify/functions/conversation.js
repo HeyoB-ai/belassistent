@@ -2,7 +2,9 @@ import twilio from 'twilio';
 import Anthropic from '@anthropic-ai/sdk';
 import { getStore } from '@netlify/blobs';
 
-const MODEL = 'claude-sonnet-4-6';
+// Snel model voor de losse gespreksbeurten; krachtiger model voor de eind-samenvatting.
+const MODEL_TURN = 'claude-haiku-4-5';
+const MODEL_SUMMARY = 'claude-sonnet-4-6';
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
 // ElevenLabs-stemmen (overschrijfbaar via env vars; fallback = standaardstemmen).
@@ -112,7 +114,9 @@ export default async function handler(req) {
     vr.gather({
       input: 'speech',
       language: 'nl-NL',
-      speechTimeout: 'auto',
+      // Lagere speechTimeout = de beurt gaat sneller terug naar de AI na een stilte.
+      // '1' is snappy; verhoog als zinnen worden afgekapt.
+      speechTimeout: '1',
       action: webhookUrl,
       method: 'POST',
     });
@@ -149,13 +153,13 @@ De taak namens ${caller} is: ${state.task}.
 
 Open het gesprek met een zin in deze vorm: "Goedemiddag, u spreekt met een AI-assistent die belt namens ${caller}. Ik bel omdat ..." en beschrijf daarna kort de reden (de taak). ${referentieInstructie}${goalInstructie}${emailInstructie}
 
-Voer het gesprek beleefd, kort en doelgericht. Reageer natuurlijk op wat de medewerker zegt. Geef per beurt alleen wat je zou zeggen, kort. Als het gewenste doel bereikt is of het gesprek logisch eindigt, geef dan als laatste regel exact [EINDE].`;
+Voer het gesprek beleefd, kort en doelgericht. Houd antwoorden kort, zoals in een echt telefoongesprek, meestal één of twee zinnen. Reageer natuurlijk op wat de medewerker zegt. Geef per beurt alleen wat je zou zeggen, kort. Als het gewenste doel bereikt is of het gesprek logisch eindigt, geef dan als laatste regel exact [EINDE].`;
 }
 
-async function callClaude(anthropic, system, messages) {
+async function callClaude(anthropic, system, messages, model = MODEL_TURN, maxTokens = 150) {
   const msg = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 512,
+    model,
+    max_tokens: maxTokens,
     system,
     messages,
   });
@@ -192,7 +196,13 @@ De waarde van "status" is altijd exact een van: opgelost, lopend, terugbellen. D
 
   let raw;
   try {
-    raw = await callClaude(anthropic, system, [{ role: 'user', content: userContent }]);
+    raw = await callClaude(
+      anthropic,
+      system,
+      [{ role: 'user', content: userContent }],
+      MODEL_SUMMARY,
+      512
+    );
   } catch (err) {
     return {
       status: 'lopend',

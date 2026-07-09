@@ -1,17 +1,18 @@
 // GET /api/speak?text=...&voice=<voiceId>
-// Zet tekst om naar spraak via ElevenLabs en geeft de MP3-bytes rechtstreeks terug,
-// zodat Twilio deze met <Play> kan afspelen.
+// Zet tekst om naar spraak via ElevenLabs Flash v2.5 (snelste model, ~75ms) en streamt
+// de MP3-bytes direct door naar Twilio, zodat afspelen begint terwijl er nog gegenereerd
+// wordt. Geen volledige buffering.
 //
-// Standaard-stemmen zijn overschrijfbaar via env vars:
-//   ELEVENLABS_VOICE_AI    — stem van de AI-assistent (wordt hier standaard gebruikt)
-//   ELEVENLABS_VOICE_AGENT — stem voor medewerker-simulatie (bv. in demo's)
-// De fallback-ID's hieronder zijn ElevenLabs-standaardstemmen; vervang ze door de
-// Nederlandse/multilingual stemmen uit je eigen account via de env vars.
+// Stemmen overschrijfbaar via env vars ELEVENLABS_VOICE_AI / ELEVENLABS_VOICE_AGENT.
+// Base URL overschrijfbaar via ELEVENLABS_BASE_URL (bv. https://api.us.elevenlabs.io als
+// je dicht bij het US-cluster zit — Netlify draait meestal in de VS).
 const DEFAULT_VOICE = process.env.ELEVENLABS_VOICE_AI || '21m00Tcm4TlvDq8ikWAM';
+const BASE_URL = process.env.ELEVENLABS_BASE_URL || 'https://api.elevenlabs.io';
 
 export default async function handler(req) {
   const url = new URL(req.url);
-  const text = url.searchParams.get('text');
+  // Tekst kort houden (< 1000 tekens) voor de snelste generatie.
+  const text = (url.searchParams.get('text') || '').slice(0, 1000);
   const voice = url.searchParams.get('voice') || DEFAULT_VOICE;
 
   if (!text) {
@@ -23,7 +24,8 @@ export default async function handler(req) {
     return new Response('ELEVENLABS_API_KEY ontbreekt op de server.', { status: 500 });
   }
 
-  const elevenUrl = `https://api.elevenlabs.io/v1/text-to-speech/${voice}`;
+  // Streaming endpoint + optimize_streaming_latency=3 voor de laagste TTFB.
+  const elevenUrl = `${BASE_URL}/v1/text-to-speech/${voice}/stream?optimize_streaming_latency=3&output_format=mp3_44100_128`;
 
   let resp;
   try {
@@ -36,7 +38,7 @@ export default async function handler(req) {
       },
       body: JSON.stringify({
         text,
-        model_id: 'eleven_multilingual_v2',
+        model_id: 'eleven_flash_v2_5',
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     });
@@ -51,11 +53,8 @@ export default async function handler(req) {
     });
   }
 
-  const audio = await resp.arrayBuffer();
-
-  // Ruwe MP3-bytes met 200 + audio/mpeg, zodat Twilio <Play> ze kan afspelen.
-  // Cache-Control laat identieke tekst (bv. herhaalde zinnen) via de CDN cachen.
-  return new Response(Buffer.from(audio), {
+  // Stream de response-body rechtstreeks door naar Twilio — geen buffering.
+  return new Response(resp.body, {
     status: 200,
     headers: {
       'Content-Type': 'audio/mpeg',
