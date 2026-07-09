@@ -1,7 +1,7 @@
 # AI Belassistent
 
 Een **meertalige, taal-eerst** webapp waarmee een AI-assistent namens jou een helpdesk
-belt. De AI voert het gesprek **volledig in het Nederlands** (via Twilio + Amazon Polly),
+belt. De AI voert het gesprek **volledig in het Nederlands** (spraak via ElevenLabs),
 en de hele interface + eindsamenvatting zijn in de taal die je zelf kiest
 (NL/TR/AR/PL/EN/ES/FR/ZH, inclusief RTL voor Arabisch).
 
@@ -17,10 +17,12 @@ altijd een knop om van taal te wisselen.
   - `POST /api/conversation` — Twilio-webhook: de AI opent, reageert op de medewerker
     (spraak via `<Gather input="speech">`), en genereert bij het einde een samenvatting.
   - `GET /api/call-status?callSid=xxx` — de frontend poll't hier elke 2 seconden.
+  - `GET /api/speak?text=...&voice=...` — zet tekst om naar MP3 via ElevenLabs; Twilio
+    speelt dit af met `<Play>`.
 - **State**: per `callSid` opgeslagen in [Netlify Blobs](https://docs.netlify.com/blobs/overview/).
 - **AI**: Claude (`claude-sonnet-4-6`) via `@anthropic-ai/sdk`.
-- **Spraak**: TTS met `Polly.Ruben` (NL man) voor de AI-assistent; spraakherkenning
-  via Twilio `<Gather input="speech" language="nl-NL">`.
+- **Spraak**: TTS via **ElevenLabs** (`eleven_multilingual_v2`), afgespeeld door Twilio
+  `<Play>`; spraakherkenning via Twilio `<Gather input="speech" language="nl-NL">`.
 
 ## Deployen naar Netlify
 
@@ -48,6 +50,9 @@ altijd een knop om van taal te wisselen.
    | `TWILIO_AUTH_TOKEN`  | Je Twilio Auth Token                               |
    | `TWILIO_FROM_NUMBER` | Je Twilio-nummer in internationaal formaat (`+31…`) |
    | `ANTHROPIC_API_KEY`  | Je Anthropic API key (`sk-ant-...`)                |
+   | `ELEVENLABS_API_KEY` | Je ElevenLabs API key (voor de spraak via `<Play>`) |
+   | `ELEVENLABS_VOICE_AI` | Stem-ID (AI-assistent) — kies een NL/multilingual stem |
+   | `ELEVENLABS_VOICE_AGENT` | Stem-ID (medewerker-simulatie, optioneel) |
 
    > `URL` hoef je **niet** te zetten: Netlify vult die automatisch met de deploy-URL,
    > waarmee de app de Twilio-webhook-URL opbouwt.

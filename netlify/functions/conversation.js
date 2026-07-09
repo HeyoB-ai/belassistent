@@ -5,6 +5,16 @@ import { getStore } from '@netlify/blobs';
 const MODEL = 'claude-sonnet-4-6';
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
+// ElevenLabs-stemmen (overschrijfbaar via env vars; fallback = standaardstemmen).
+const VOICE_AI = process.env.ELEVENLABS_VOICE_AI || '21m00Tcm4TlvDq8ikWAM';
+const VOICE_AGENT = process.env.ELEVENLABS_VOICE_AGENT || 'ErXwobaYiN019PkySvjV';
+
+// Bouwt de /api/speak-URL voor <Play>. Tekst wordt URL-encoded zodat spaties en
+// leestekens goed doorkomen; de twilio-lib escaped daarna de & naar &amp; in de TwiML.
+function speakUrl(text, voice = VOICE_AI) {
+  return `${process.env.URL}/api/speak?voice=${voice}&text=${encodeURIComponent(text)}`;
+}
+
 // Volledige taalnamen voor de samenvattingsprompt.
 const LANGUAGE_NAMES = {
   nl: 'Nederlands',
@@ -94,7 +104,7 @@ export default async function handler(req) {
   await store.setJSON(callSid, state);
 
   const vr = new VoiceResponse();
-  vr.say({ voice: 'Polly.Ruben', language: 'nl-NL' }, spoken);
+  vr.play(speakUrl(spoken));
 
   if (done) {
     vr.hangup();
@@ -107,7 +117,7 @@ export default async function handler(req) {
       method: 'POST',
     });
     // Als er niets wordt gezegd binnen de gather, ronden we het gesprek netjes af.
-    vr.say({ voice: 'Polly.Ruben', language: 'nl-NL' }, 'Ik hoor niets meer. Bedankt en tot ziens.');
+    vr.play(speakUrl('Ik hoor niets meer. Bedankt en tot ziens.'));
     vr.hangup();
   }
 
@@ -244,7 +254,7 @@ function twiml(xml) {
 
 function hangupResponse(message) {
   const vr = new VoiceResponse();
-  vr.say({ voice: 'Polly.Ruben', language: 'nl-NL' }, message);
+  vr.play(speakUrl(message));
   vr.hangup();
   return vr.toString();
 }
