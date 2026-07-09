@@ -36,7 +36,7 @@ export default async function handler(req) {
     return json({ error: 'URL-omgevingsvariabele ontbreekt (nodig voor de webhook).' }, 500);
   }
 
-  const webhookUrl = `${URL}/.netlify/functions/conversation`;
+  const webhookUrl = `${URL}/api/conversation`;
   const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
   let call;

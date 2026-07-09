@@ -43,7 +43,7 @@ export default async function handler(req) {
     return twiml(hangupResponse('Dit gesprek kan niet worden voortgezet. Tot ziens.'));
   }
 
-  const webhookUrl = `${process.env.URL}/.netlify/functions/conversation`;
+  const webhookUrl = `${process.env.URL}/api/conversation`;
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   // Situatie c) — terminale status: samenvatting genereren, geen TwiML nodig.
