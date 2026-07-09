@@ -82,6 +82,12 @@ export default async function handler(req) {
   // Streaming endpoint + optimize_streaming_latency=3 voor de laagste TTFB.
   const elevenUrl = `${BASE_URL}/v1/text-to-speech/${voice}/stream?optimize_streaming_latency=3&output_format=mp3_44100_128`;
 
+  // Eigen fetch-timeout (5s) op de time-to-first-byte, zodat een trage TTS de function
+  // niet laat hangen. Wordt gewist zodra de headers binnen zijn (daarna streamt de body).
+  const controller = new AbortController();
+  const abortTimer = setTimeout(() => controller.abort(), 5000);
+  const elStart = Date.now();
+
   let resp;
   try {
     resp = await fetch(elevenUrl, {
@@ -96,10 +102,14 @@ export default async function handler(req) {
         model_id: 'eleven_flash_v2_5',
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
+      signal: controller.signal,
     });
   } catch (err) {
+    clearTimeout(abortTimer);
     return new Response(`ElevenLabs-verbindingsfout: ${err.message}`, { status: 502 });
   }
+  clearTimeout(abortTimer);
+  console.log(`[speak] ElevenLabs=${Date.now() - elStart}ms voice=${voice}`);
 
   if (!resp.ok) {
     const detail = await resp.text().catch(() => '');

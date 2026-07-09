@@ -38,6 +38,9 @@ export default async function handler(req) {
 
   const elevenUrl = `${BASE_URL}/v1/text-to-speech/${voice}?output_format=mp3_44100_128`;
 
+  const controller = new AbortController();
+  const abortTimer = setTimeout(() => controller.abort(), 5000);
+
   let resp;
   try {
     resp = await fetch(elevenUrl, {
@@ -52,10 +55,13 @@ export default async function handler(req) {
         model_id: 'eleven_flash_v2_5',
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
+      signal: controller.signal,
     });
   } catch (err) {
+    clearTimeout(abortTimer);
     return new Response(`ElevenLabs-verbindingsfout: ${err.message}`, { status: 502 });
   }
+  clearTimeout(abortTimer);
 
   if (!resp.ok) {
     const detail = await resp.text().catch(() => '');

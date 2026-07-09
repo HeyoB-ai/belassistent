@@ -50,7 +50,9 @@ export default async function handler(req) {
       method: 'POST',
       statusCallback: webhookUrl,
       statusCallbackMethod: 'POST',
-      statusCallbackEvent: ['completed', 'busy', 'no-answer', 'failed'],
+      // Alleen geldige Twilio-events. 'completed' vuurt óók bij busy/no-answer/failed;
+      // de echte uitkomst staat dan in het CallStatus-veld van die callback.
+      statusCallbackEvent: ['completed'],
     });
   } catch (err) {
     return json({ error: `Twilio-fout: ${err.message}` }, 502);

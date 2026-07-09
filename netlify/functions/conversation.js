@@ -43,6 +43,29 @@ function addListenGather(vr, webhookUrl, speechTimeout = 'auto') {
   });
 }
 
+// Harde interne timeout: grijp RUIM vóór Netlify's ~10s in, zodat een beurt nooit
+// tegen de function-timeout aanloopt en een 502 geeft.
+const CLAUDE_TIMEOUT_MS = 6000;
+const MAX_TURN_RETRY = 2; // aantal "moment"-fallbacks per beurt voordat we netjes afronden.
+
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timeout na ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// Houdt het gesprek levend als een beurt te lang dreigt te duren: korte Polly-melding
+// (altijd geluid, geen externe afhankelijkheid) + retry van de generatie in de volgende
+// beurt. Zo krijgt Twilio direct geldige TwiML en riskeren we nooit een 502.
+function momentResponse(webhookUrl) {
+  const vr = new VoiceResponse();
+  vr.say({ voice: 'Polly.Ruben', language: 'nl-NL' }, 'Een moment alstublieft.');
+  vr.redirect({ method: 'POST' }, `${webhookUrl}?step=retry`);
+  return twiml(vr.toString());
+}
+
 // Volledige taalnamen voor de samenvattingsprompt.
 const LANGUAGE_NAMES = {
   nl: 'Nederlands',
@@ -107,11 +130,15 @@ export default async function handler(req) {
   const maxDtmf = intEnv('MAX_DTMF', 5);
   const maxListen = intEnv('MAX_LISTEN', 6);
 
+  const step = new URL(req.url).searchParams.get('step');
+  const turnStart = Date.now();
+  console.log(`[conv] start callSid=${callSid} step=${step || '-'} speech=${speech ? 'ja' : 'nee'}`);
+
   // ── LUISTER-STAP ─────────────────────────────────────────────────────────
-  // Geen spraak (verbinding net open, of stilte-herhaling via ?step=listen): NIET
-  // praten maar luisteren. Veel helpdesks starten meteen met een IVR-keuzemenu — daar
-  // mogen we niet overheen praten. We vangen zowel spraak als DTMF op.
-  if (!speech) {
+  // Geen spraak en geen retry (verbinding net open, of stilte-herhaling via
+  // ?step=listen): NIET praten maar luisteren. Veel helpdesks starten meteen met een
+  // IVR-keuzemenu — daar mogen we niet overheen praten. We vangen spraak én DTMF op.
+  if (!speech && step !== 'retry') {
     state.listenCount = (state.listenCount || 0) + 1;
     if (state.listenCount > maxListen) {
       return twiml(hangupResponse('Ik krijg helaas geen reactie. Ik probeer het later opnieuw. Tot ziens.'));
@@ -125,11 +152,13 @@ export default async function handler(req) {
     return twiml(vr.toString());
   }
 
-  // ── SPRAAK BINNEN: Claude beslist menu vs. mens ──────────────────────────
-  // We roepen Claude eerst aan; daarna weten we of het een keuzemenu is ([DTMF:X])
-  // of een echt gesprek, en kiezen we wel/geen vulwoord.
-  state.messages.push({ speaker: 'agent', text: speech });
-  state.listenCount = 0; // reactie ontvangen → stilte-teller resetten
+  // ── SPRAAK BINNEN (of retry): Claude beslist menu vs. mens ───────────────
+  // Bij een verse beurt slaan we het agent-bericht op; bij een retry (na een te trage
+  // vorige poging) staat het er al en genereren we opnieuw.
+  if (speech) {
+    state.messages.push({ speaker: 'agent', text: speech });
+    state.listenCount = 0; // reactie ontvangen → stilte-teller resetten
+  }
 
   const claudeMessages = [
     { role: 'user', content: '[De verbinding met de helpdesk is tot stand gekomen.]' },
@@ -142,14 +171,32 @@ export default async function handler(req) {
     });
   }
 
+  // Claude met HARDE timeout — loopt nooit tegen Netlify's ~10s aan.
   let reply;
+  const claudeStart = Date.now();
   try {
-    reply = await callClaude(anthropic, buildSystemPrompt(state), claudeMessages);
+    reply = await withTimeout(
+      callClaude(anthropic, buildSystemPrompt(state), claudeMessages),
+      CLAUDE_TIMEOUT_MS,
+      'Claude'
+    );
+    console.log(`[conv] callSid=${callSid} Claude=${Date.now() - claudeStart}ms`);
   } catch (err) {
-    state.messages.push({ speaker: 'system', text: `Fout bij AI: ${err.message}` });
+    console.log(`[conv] callSid=${callSid} Claude FAALDE na ${Date.now() - claudeStart}ms: ${err.message}`);
+    state.retryCount = (state.retryCount || 0) + 1;
+
+    if (state.retryCount > MAX_TURN_RETRY) {
+      // Blijft te traag: netjes afronden i.p.v. eindeloos "moment".
+      state.retryCount = 0;
+      state.messages.push({ speaker: 'system', text: `AI te traag/onbereikbaar: ${err.message}` });
+      await store.setJSON(callSid, state);
+      return twiml(hangupResponse('Sorry, er is een technisch probleem. Ik probeer het later opnieuw. Tot ziens.'));
+    }
+    // Budget dreigt te verlopen: "moment" + retry (agent-bericht is nu opgeslagen).
     await store.setJSON(callSid, state);
-    return twiml(hangupResponse('Er ging iets mis met de assistent. Ik hang op. Tot ziens.'));
+    return momentResponse(webhookUrl);
   }
+  state.retryCount = 0; // gelukt → retry-teller resetten
 
   // ── Keuzemenu? Verstuur DTMF — ZONDER vulwoord. ──────────────────────────
   // Tegen een geautomatiseerd menu zegt een mens ook niks; de filler is daar
@@ -174,6 +221,7 @@ export default async function handler(req) {
     vr.play({ digits: tone }); // stuurt de DTMF-toon naar de helpdesk (geen filler)
     addListenGather(vr, webhookUrl, speechTimeout); // luister naar het volgende menu/antwoord
     vr.redirect({ method: 'POST' }, `${webhookUrl}?step=listen`);
+    console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (DTMF ${tone})`);
     return twiml(vr.toString());
   }
 
@@ -204,6 +252,7 @@ export default async function handler(req) {
     vr.hangup();
   }
 
+  console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (spraak)`);
   return twiml(vr.toString());
 }
 
