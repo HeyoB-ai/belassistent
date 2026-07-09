@@ -17,6 +17,14 @@ function speakUrl(text, voice = VOICE_AI) {
   return `${process.env.URL}/api/speak?voice=${voice}&text=${encodeURIComponent(text)}`;
 }
 
+// Aantal vulwoorden in /api/filler (houd in sync met FILLER_TEXTS in filler.js).
+// De filler-audio wordt gecachet, dus afspelen kost geen generatietijd — het maskeert
+// de stilte terwijl Claude + ElevenLabs het echte antwoord maken.
+const FILLER_COUNT = 4;
+function fillerUrl(i) {
+  return `${process.env.URL}/api/filler?voice=${VOICE_AI}&i=${i}`;
+}
+
 // Volledige taalnamen voor de samenvattingsprompt.
 const LANGUAGE_NAMES = {
   nl: 'Nederlands',
@@ -71,11 +79,25 @@ export default async function handler(req) {
   // Situatie a) & b) — voice-webhook: het gesprek loopt.
   state.status = 'in-progress';
 
-  if (speech) {
-    // b) medewerker heeft iets gezegd
+  const step = new URL(req.url).searchParams.get('step');
+
+  // ── FILLER-STAP ──────────────────────────────────────────────────────────
+  // Medewerker heeft iets gezegd: speel DIRECT een kort, gecachet vulwoord af
+  // (geen generatietijd) en ga daarna via <Redirect> naar de respond-stap, waar
+  // Claude + ElevenLabs het echte antwoord genereren. Zo hoort de medewerker
+  // meteen iets menselijks in plaats van dode lucht.
+  if (speech && step !== 'respond') {
     state.messages.push({ speaker: 'agent', text: speech });
+    await store.setJSON(callSid, state);
+
+    const vr = new VoiceResponse();
+    vr.play(fillerUrl(Math.floor(Math.random() * FILLER_COUNT)));
+    vr.redirect({ method: 'POST' }, `${webhookUrl}?step=respond`);
+    return twiml(vr.toString());
   }
 
+  // ── RESPOND-STAP (of openingsbeurt) ──────────────────────────────────────
+  // Het agent-bericht is al opgeslagen in de filler-stap; bij de opening is er geen.
   // Bouw de gespreksgeschiedenis voor Claude. De medewerker = user, de AI = assistant.
   // We starten altijd met een synthetische user-turn zodat de reeks geldig alterneert.
   const claudeMessages = [
