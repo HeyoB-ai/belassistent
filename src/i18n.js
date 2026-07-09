@@ -55,6 +55,10 @@ export const TRANSLATIONS = {
     callerNameHint: 'De AI belt namens jou — deze naam wordt genoemd.',
     referencePlaceholder: 'Bijv. klantnummer 987654321 of trackingcode 12345',
     referenceHint: 'De AI noemt dit als de helpdesk erom vraagt.',
+    callFailedTitle: 'Gesprek niet gelukt',
+    callFailedMessage: 'De helpdesk nam niet op of was bezet. Je gegevens zijn bewaard — probeer het opnieuw.',
+    retryButton: 'Opnieuw proberen',
+    clearFormButton: 'Formulier leegmaken',
   },
   tr: {
     appTitle: 'AI Çağrı Asistanı',
@@ -93,6 +97,10 @@ export const TRANSLATIONS = {
     callerNameHint: 'Yapay zeka sizin adınıza arar — bu isim belirtilir.',
     referencePlaceholder: 'Örn. müşteri no 987654321 veya takip kodu 12345',
     referenceHint: 'Yardım hattı sorduğunda yapay zeka bunu belirtir.',
+    callFailedTitle: 'Arama başarısız',
+    callFailedMessage: 'Yardım hattı yanıt vermedi veya meşguldü. Bilgileriniz kaydedildi — tekrar deneyin.',
+    retryButton: 'Tekrar dene',
+    clearFormButton: 'Formu temizle',
   },
   ar: {
     appTitle: 'مساعد الاتصال بالذكاء الاصطناعي',
@@ -131,6 +139,10 @@ export const TRANSLATIONS = {
     callerNameHint: 'يتصل الذكاء الاصطناعي نيابةً عنك — سيُذكر هذا الاسم.',
     referencePlaceholder: 'مثال: رقم العميل 987654321 أو رمز التتبع 12345',
     referenceHint: 'يذكره الذكاء الاصطناعي عندما يطلبه مكتب المساعدة.',
+    callFailedTitle: 'فشل الاتصال',
+    callFailedMessage: 'لم يرد مكتب المساعدة أو كان مشغولاً. تم حفظ بياناتك — حاول مرة أخرى.',
+    retryButton: 'حاول مرة أخرى',
+    clearFormButton: 'مسح النموذج',
   },
   pl: {
     appTitle: 'Asystent Połączeń AI',
@@ -169,6 +181,10 @@ export const TRANSLATIONS = {
     callerNameHint: 'AI dzwoni w Twoim imieniu — to imię zostanie podane.',
     referencePlaceholder: 'Np. numer klienta 987654321 lub kod śledzenia 12345',
     referenceHint: 'AI poda to, gdy infolinia o to poprosi.',
+    callFailedTitle: 'Połączenie nieudane',
+    callFailedMessage: 'Infolinia nie odebrała lub była zajęta. Twoje dane zostały zapisane — spróbuj ponownie.',
+    retryButton: 'Spróbuj ponownie',
+    clearFormButton: 'Wyczyść formularz',
   },
   en: {
     appTitle: 'AI Call Assistant',
@@ -207,6 +223,10 @@ export const TRANSLATIONS = {
     callerNameHint: 'The AI calls on your behalf — this name is mentioned.',
     referencePlaceholder: 'e.g. customer no. 987654321 or tracking code 12345',
     referenceHint: 'The AI mentions this if the helpdesk asks for it.',
+    callFailedTitle: 'Call failed',
+    callFailedMessage: "The helpdesk didn't answer or was busy. Your details are saved — try again.",
+    retryButton: 'Try again',
+    clearFormButton: 'Clear form',
   },
   es: {
     appTitle: 'Asistente de Llamadas IA',
@@ -245,6 +265,10 @@ export const TRANSLATIONS = {
     callerNameHint: 'La IA llama en tu nombre — se mencionará este nombre.',
     referencePlaceholder: 'Ej. n.º de cliente 987654321 o código de seguimiento 12345',
     referenceHint: 'La IA lo menciona si el servicio lo solicita.',
+    callFailedTitle: 'Llamada fallida',
+    callFailedMessage: 'El servicio no contestó o estaba ocupado. Tus datos se han guardado — inténtalo de nuevo.',
+    retryButton: 'Intentar de nuevo',
+    clearFormButton: 'Vaciar formulario',
   },
   fr: {
     appTitle: "Assistant d'Appel IA",
@@ -283,6 +307,10 @@ export const TRANSLATIONS = {
     callerNameHint: "L'IA appelle en votre nom — ce nom sera mentionné.",
     referencePlaceholder: 'Ex. n° client 987654321 ou code de suivi 12345',
     referenceHint: "L'IA le mentionne si le service le demande.",
+    callFailedTitle: "Échec de l'appel",
+    callFailedMessage: "Le service n'a pas répondu ou était occupé. Vos informations sont enregistrées — réessayez.",
+    retryButton: 'Réessayer',
+    clearFormButton: 'Effacer le formulaire',
   },
   zh: {
     appTitle: 'AI 通话助手',
@@ -320,6 +348,10 @@ export const TRANSLATIONS = {
     callerNameHint: 'AI 代表您致电 — 会提及此姓名。',
     referencePlaceholder: '例如：客户号 987654321 或快递单号 12345',
     referenceHint: '客服询问时，AI 会提及此信息。',
+    callFailedTitle: '通话失败',
+    callFailedMessage: '客服未接听或占线。您的信息已保存 — 请重试。',
+    retryButton: '重试',
+    clearFormButton: '清空表单',
   },
 };
 

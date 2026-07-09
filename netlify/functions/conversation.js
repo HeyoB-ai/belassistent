@@ -84,11 +84,16 @@ export default async function handler(req) {
   const webhookUrl = `${process.env.URL}/api/conversation`;
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  // Situatie c) — terminale status: samenvatting genereren, geen TwiML nodig.
+  // Situatie c) — terminale status: bewaar de ECHTE status (completed/busy/no-answer/
+  // failed/canceled). Alleen bij 'completed' een samenvatting genereren; bij een
+  // mislukte status was er geen gesprek en toont de frontend een "opnieuw proberen".
   if (TERMINAL.includes(callStatus)) {
-    if (state.status !== 'completed') {
-      state.status = 'completed';
-      state.outcome = await generateSummary(anthropic, state);
+    if (!state.finalized) {
+      state.finalized = true;
+      state.status = callStatus;
+      if (callStatus === 'completed') {
+        state.outcome = await generateSummary(anthropic, state);
+      }
       await store.setJSON(callSid, state);
     }
     return new Response('', { status: 204 });

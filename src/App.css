@@ -301,6 +301,39 @@ body {
   cursor: not-allowed;
 }
 
+/* Subtiele secundaire knop (formulier leegmaken) */
+.btn-clear {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-clear:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Mislukt gesprek */
+.failed h2 {
+  color: #b91c1c;
+  margin-top: 0;
+}
+
+.failed p {
+  color: var(--text);
+}
+
+.failed .btn-primary {
+  margin-top: 12px;
+  width: 100%;
+}
+
 /* ---------- Statusbar ---------- */
 .statusbar {
   display: flex;

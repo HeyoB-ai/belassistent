@@ -1,29 +1,14 @@
-import { useState } from 'react';
 import { useLang } from '../i18n.js';
 
-export default function CallForm({ onSubmit, busy }) {
+// Gecontroleerd formulier: de waarden komen uit App (form) en wijzigen via onField,
+// zodat de invoer bewaard blijft tussen fases en in localStorage.
+export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
   const { t, isRtl } = useLang();
-
-  const [callerName, setCallerName] = useState('');
-  const [company, setCompany] = useState('');
-  const [helpdeskNumber, setHelpdeskNumber] = useState('');
-  const [task, setTask] = useState('');
-  const [goal, setGoal] = useState('');
-  const [email, setEmail] = useState('');
-  const [reference, setReference] = useState('');
 
   function handleSubmit(e) {
     e.preventDefault();
     if (busy) return;
-    onSubmit({
-      callerName: callerName.trim(),
-      company: company.trim(),
-      helpdesk_number: helpdeskNumber.trim(),
-      task: task.trim(),
-      goal: goal.trim(),
-      email: email.trim(),
-      reference: reference.trim(),
-    });
+    onSubmit();
   }
 
   return (
@@ -38,8 +23,8 @@ export default function CallForm({ onSubmit, busy }) {
             required
             dir={isRtl ? 'rtl' : 'ltr'}
             placeholder={t.callerNamePlaceholder}
-            value={callerName}
-            onChange={(e) => setCallerName(e.target.value)}
+            value={form.callerName}
+            onChange={(e) => onField('callerName', e.target.value)}
           />
           <p className="field-hint">{t.callerNameHint}</p>
         </div>
@@ -51,8 +36,8 @@ export default function CallForm({ onSubmit, busy }) {
             type="text"
             required
             placeholder={t.companyPlaceholder}
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
+            value={form.company}
+            onChange={(e) => onField('company', e.target.value)}
           />
         </div>
 
@@ -64,8 +49,8 @@ export default function CallForm({ onSubmit, busy }) {
             required
             dir="ltr"
             placeholder={t.phonePlaceholder}
-            value={helpdeskNumber}
-            onChange={(e) => setHelpdeskNumber(e.target.value)}
+            value={form.helpdesk_number}
+            onChange={(e) => onField('helpdesk_number', e.target.value)}
           />
         </div>
 
@@ -77,8 +62,8 @@ export default function CallForm({ onSubmit, busy }) {
             rows={5}
             dir={isRtl ? 'rtl' : 'ltr'}
             placeholder={t.taskPlaceholder}
-            value={task}
-            onChange={(e) => setTask(e.target.value)}
+            value={form.task}
+            onChange={(e) => onField('task', e.target.value)}
           />
         </div>
 
@@ -94,8 +79,8 @@ export default function CallForm({ onSubmit, busy }) {
             rows={3}
             dir={isRtl ? 'rtl' : 'ltr'}
             placeholder={t.goalPlaceholder}
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
+            value={form.goal}
+            onChange={(e) => onField('goal', e.target.value)}
           />
           <p className="field-hint">{t.goalHint}</p>
         </div>
@@ -107,8 +92,8 @@ export default function CallForm({ onSubmit, busy }) {
             type="email"
             dir="ltr"
             placeholder={t.emailPlaceholder}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={form.email}
+            onChange={(e) => onField('email', e.target.value)}
           />
           <p className="field-hint">{t.emailHint}</p>
         </div>
@@ -120,8 +105,8 @@ export default function CallForm({ onSubmit, busy }) {
             type="text"
             dir={isRtl ? 'rtl' : 'ltr'}
             placeholder={t.referencePlaceholder}
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
+            value={form.reference}
+            onChange={(e) => onField('reference', e.target.value)}
           />
           <p className="field-hint">{t.referenceHint}</p>
         </div>
@@ -130,6 +115,9 @@ export default function CallForm({ onSubmit, busy }) {
 
         <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? t.callingStatus : t.startButton}
+        </button>
+        <button type="button" className="btn-clear" onClick={onClear}>
+          {t.clearFormButton}
         </button>
       </form>
     </section>
