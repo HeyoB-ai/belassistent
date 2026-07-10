@@ -165,6 +165,7 @@ async function handleTurn(req) {
     if (!state.finalized) {
       state.finalized = true;
       state.status = callStatus;
+      state.phase = 'done';
       if (callStatus === 'completed') {
         state.outcome = await generateSummary(anthropic, state);
       }
@@ -191,7 +192,9 @@ async function handleTurn(req) {
   // IVR-keuzemenu — daar mogen we niet overheen praten. We vangen spraak én DTMF op.
   if (!speech && step !== 'retry') {
     state.listenCount = (state.listenCount || 0) + 1;
-    console.log(`[conv] callSid=${callSid} fase=wachtrij (stilte/muziek, luisterbeurt ${state.listenCount})`);
+    // Nog geen contact = verbinden; daarna is stilte/muziek een wachtrij.
+    state.phase = state.messages.length ? 'waiting' : 'connecting';
+    console.log(`[conv] callSid=${callSid} fase=${state.phase} (stilte/muziek, luisterbeurt ${state.listenCount})`);
     // Stilte/wachtmuziek is normaal wachten — NIET ophangen op een luister-teller. Alleen
     // een ruime absolute bovengrens (MAX_HOLD_MINUTES) tegen een kapot nummer.
     if (holdElapsedMs(state) > maxHoldMs) {
@@ -263,6 +266,7 @@ async function handleTurn(req) {
   const dtmfMatch = reply.match(/\[DTMF:\s*([0-9*#]+)\]/i);
   if (dtmfMatch) {
     console.log(`[conv] callSid=${callSid} fase=menu`);
+    state.phase = 'menu';
     state.dtmfCount = (state.dtmfCount || 0) + 1;
 
     // Loop-beveiliging: te lang in keuzemenu's.
@@ -290,6 +294,7 @@ async function handleTurn(req) {
   // Reageer NOOIT inhoudelijk op wachtmuziek of "u wordt zo geholpen"; sluit NIET af.
   if (/\[WACHTEN\]/i.test(reply)) {
     console.log(`[conv] callSid=${callSid} fase=wachtrij`);
+    state.phase = 'waiting';
     state.dtmfCount = 0; // voorbij het menu
 
     if (holdElapsedMs(state) > maxHoldMs) {
@@ -321,6 +326,7 @@ async function handleTurn(req) {
 
   // ── Fase 3: ECHTE MEDEWERKER — (vulwoord) + spraakantwoord. ──────────────
   console.log(`[conv] callSid=${callSid} fase=medewerker`);
+  state.phase = 'agent';
   state.dtmfCount = 0; // medewerker bereikt → menu-teller resetten
   const done = /\[EINDE\]/i.test(reply);
   const spoken = reply.replace(/\[EINDE\]/gi, '').trim() || 'Dank u wel. Tot ziens.';

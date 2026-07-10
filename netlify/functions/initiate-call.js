@@ -70,6 +70,7 @@ export default async function handler(req) {
     reference,
     messages: [],
     status: 'initiated',
+    phase: 'connecting',
     outcome: null,
     createdAt: new Date().toISOString(),
   };

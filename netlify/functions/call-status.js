@@ -19,6 +19,7 @@ export default async function handler(req) {
 
   return json({
     status: state.status,
+    phase: state.phase || 'connecting',
     messages: state.messages || [],
     outcome: state.outcome || null,
   });

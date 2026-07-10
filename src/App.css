@@ -334,6 +334,111 @@ body {
   width: 100%;
 }
 
+/* ---------- Fase-indicator ---------- */
+.phase-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.phase-timer {
+  font-size: 1.7rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.phase-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.phase-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.phase-step.active {
+  background: #f5f3ff;
+}
+
+.phase-marker {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 2px solid var(--border);
+  background: #fff;
+  color: transparent;
+  margin-top: 1px;
+}
+
+.phase-step.todo .phase-title {
+  color: var(--muted);
+}
+
+.phase-step.done .phase-marker {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+
+.phase-step.active .phase-marker {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  animation: pulse-accent 1.5s infinite;
+}
+
+.phase-step.active .phase-title {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.phase-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.phase-title {
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.phase-sub {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+@keyframes pulse-accent {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
+}
+
 /* ---------- Statusbar ---------- */
 .statusbar {
   display: flex;

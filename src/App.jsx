@@ -49,6 +49,7 @@ export default function App() {
 
   const [callSid, setCallSid] = useState(null);
   const [status, setStatus] = useState('initiated');
+  const [callPhase, setCallPhase] = useState('connecting');
   const [messages, setMessages] = useState([]);
   const [outcome, setOutcome] = useState(null);
 
@@ -83,6 +84,7 @@ export default function App() {
         if (cancelled) return;
 
         setStatus(data.status || 'initiated');
+        setCallPhase(data.phase || 'connecting');
         setMessages(Array.isArray(data.messages) ? data.messages : []);
 
         if (TERMINAL.includes(data.status)) {
@@ -133,6 +135,7 @@ export default function App() {
 
       setCallSid(data.callSid);
       setStatus('initiated');
+      setCallPhase('connecting');
       setMessages([]);
       setOutcome(null);
       setPhase(PHASE.LIVE);
@@ -151,6 +154,7 @@ export default function App() {
     setError(null);
     setCallSid(null);
     setStatus('initiated');
+    setCallPhase('connecting');
     setMessages([]);
     setOutcome(null);
   }
@@ -204,7 +208,7 @@ export default function App() {
           />
         )}
 
-        {phase === PHASE.LIVE && <CallTranscript status={status} messages={messages} />}
+        {phase === PHASE.LIVE && <CallTranscript phase={callPhase} messages={messages} />}
 
         {phase === PHASE.DONE && <CallSummary outcome={outcome} onReset={backToForm} />}
 
