@@ -6,3 +6,8 @@ dist/
 
 # Oud testscript met hardgecodeerde Twilio-credentials — niet pushen
 bel-test.js
+
+# Lokaal geïnstalleerde AI-skills (dev-tooling, geen onderdeel van de app)
+.agents/
+.claude/
+skills-lock.json
