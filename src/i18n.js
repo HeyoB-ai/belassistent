@@ -1,15 +1,16 @@
 import { createContext, useContext, useState, createElement } from 'react';
 
-// Ondersteunde talen: vlag + naam in eigen schrift + Engelse naam. Arabisch is RTL.
+// Ondersteunde talen. flagCode = ISO 3166-1 alpha-2 land voor de echte vlag (taal → land).
+// Arabisch is RTL.
 export const LANGUAGES = [
-  { code: 'nl', flag: '🇳🇱', nativeName: 'Nederlands', englishName: 'Dutch' },
-  { code: 'tr', flag: '🇹🇷', nativeName: 'Türkçe', englishName: 'Turkish' },
-  { code: 'ar', flag: '🇸🇦', nativeName: 'العربية', englishName: 'Arabic', rtl: true },
-  { code: 'pl', flag: '🇵🇱', nativeName: 'Polski', englishName: 'Polish' },
-  { code: 'en', flag: '🇬🇧', nativeName: 'English', englishName: 'English' },
-  { code: 'es', flag: '🇪🇸', nativeName: 'Español', englishName: 'Spanish' },
-  { code: 'fr', flag: '🇫🇷', nativeName: 'Français', englishName: 'French' },
-  { code: 'zh', flag: '🇨🇳', nativeName: '中文', englishName: 'Chinese' },
+  { code: 'nl', flagCode: 'nl', nativeName: 'Nederlands', englishName: 'Dutch' },
+  { code: 'tr', flagCode: 'tr', nativeName: 'Türkçe', englishName: 'Turkish' },
+  { code: 'ar', flagCode: 'sa', nativeName: 'العربية', englishName: 'Arabic', rtl: true },
+  { code: 'pl', flagCode: 'pl', nativeName: 'Polski', englishName: 'Polish' },
+  { code: 'en', flagCode: 'gb', nativeName: 'English', englishName: 'English' },
+  { code: 'es', flagCode: 'es', nativeName: 'Español', englishName: 'Spanish' },
+  { code: 'fr', flagCode: 'fr', nativeName: 'Français', englishName: 'French' },
+  { code: 'zh', flagCode: 'cn', nativeName: '中文', englishName: 'Chinese' },
 ];
 
 // Titel van het taalkeuze-scherm + een subtitel in meerdere talen door elkaar,

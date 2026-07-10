@@ -20,12 +20,13 @@ export default function LanguagePicker() {
               type="button"
               className="lang-row"
               onClick={() => setLang(l.code)}
-              dir={l.rtl ? 'rtl' : 'ltr'}
               aria-label={l.englishName}
             >
-              <span className="lang-flag">{l.flag}</span>
+              <span className={`lang-flag fi fi-${l.flagCode}`} aria-hidden="true" />
               <span className="lang-names">
-                <span className="lang-native">{l.nativeName}</span>
+                <span className="lang-native" dir={l.rtl ? 'rtl' : 'ltr'}>
+                  {l.nativeName}
+                </span>
                 <span className="lang-english">{l.englishName}</span>
               </span>
               <span className="lang-chevron">

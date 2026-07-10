@@ -572,16 +572,16 @@ body {
   transform: scale(0.99);
 }
 
+/* Echte vlag (flag-icons background-image). Vaste maat + ronde hoeken + hairline,
+   zodat ook witte vlaggen (bijv. Polen) zichtbaar blijven. */
 .lang-flag {
-  font-size: 30px;
-  line-height: 1;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  background: var(--surface-2);
+  width: 34px;
+  height: 25px;
+  border-radius: 5px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 0 0 1px var(--line-2);
 }
 
 .lang-names {
