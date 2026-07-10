@@ -18,8 +18,7 @@ export default function CallSummary({ outcome, onReset }) {
     <section className="card summary">
       <h2>{t.summaryTitle}</h2>
 
-      <div className="summary-row">
-        <span className="summary-key">{t.summaryTitle}</span>
+      <div className="summary-status">
         <span className={`badge ${statusInfo.cls}`}>{statusLabel}</span>
       </div>
 
@@ -30,7 +29,7 @@ export default function CallSummary({ outcome, onReset }) {
 
       <div className="summary-row">
         <span className="summary-key">{t.referenceLabel}</span>
-        <span>{outcome?.referentienummer || '—'}</span>
+        <span className="summary-value">{outcome?.referentienummer || '—'}</span>
       </div>
 
       <div className="summary-block">

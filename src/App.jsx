@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLang } from './i18n.js';
+import BrandMark from './components/BrandMark.jsx';
 import LanguagePicker from './components/LanguagePicker.jsx';
 import CallForm from './components/CallForm.jsx';
 import CallTranscript from './components/CallTranscript.jsx';
@@ -187,6 +188,7 @@ export default function App() {
       </div>
 
       <header className="header">
+        <BrandMark />
         <h1>{t.appTitle}</h1>
         <p className="tagline">{t.appSubtitle}</p>
       </header>
@@ -208,7 +210,9 @@ export default function App() {
           />
         )}
 
-        {phase === PHASE.LIVE && <CallTranscript phase={callPhase} messages={messages} />}
+        {phase === PHASE.LIVE && (
+          <CallTranscript phase={callPhase} company={form.company} messages={messages} />
+        )}
 
         {phase === PHASE.DONE && <CallSummary outcome={outcome} onReset={backToForm} />}
 

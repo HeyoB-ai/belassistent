@@ -1,7 +1,7 @@
 import { useLang } from '../i18n.js';
 import PhaseIndicator from './PhaseIndicator.jsx';
 
-export default function CallTranscript({ phase, messages }) {
+export default function CallTranscript({ phase, company, messages }) {
   const { t } = useLang();
 
   // Spreker-labels: het gesprek is Nederlands, dus de rollen houden we herkenbaar.
@@ -14,6 +14,12 @@ export default function CallTranscript({ phase, messages }) {
   return (
     <>
       <section className="card">
+        {company && (
+          <div className="call-header">
+            <span className="call-dot" aria-hidden="true" />
+            <span className="call-company">{company}</span>
+          </div>
+        )}
         <PhaseIndicator phase={phase} />
       </section>
 
