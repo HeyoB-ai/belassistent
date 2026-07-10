@@ -1,7 +1,8 @@
 import { LANGUAGES, CHOOSE_TITLE, CHOOSE_SUBTITLE, useLang } from '../i18n.js';
+import Icon from './Icon.jsx';
 
-// Eerste view: taalkeuze. Geen vaste UI-tekst in één taal — per rij de vlag,
-// de naam in eigen schrift (prominent) en de Engelse naam eronder (als houvast).
+// Eerste view: taalkeuze. Per rij de vlag (groot, in tegel), naam in eigen schrift
+// (prominent) en de Engelse naam eronder.
 export default function LanguagePicker() {
   const { setLang } = useLang();
 
@@ -22,15 +23,13 @@ export default function LanguagePicker() {
               dir={l.rtl ? 'rtl' : 'ltr'}
               aria-label={l.englishName}
             >
-              <span className="lang-flag" aria-hidden="true">
-                {l.flag}
-              </span>
+              <span className="lang-flag">{l.flag}</span>
               <span className="lang-names">
                 <span className="lang-native">{l.nativeName}</span>
                 <span className="lang-english">{l.englishName}</span>
               </span>
-              <span className="lang-chevron" aria-hidden="true">
-                ›
+              <span className="lang-chevron">
+                <Icon name="chevron-right" size={20} />
               </span>
             </button>
           </li>

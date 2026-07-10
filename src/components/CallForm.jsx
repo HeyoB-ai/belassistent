@@ -1,7 +1,7 @@
 import { useLang } from '../i18n.js';
+import Icon from './Icon.jsx';
 
-// Gecontroleerd formulier: de waarden komen uit App (form) en wijzigen via onField,
-// zodat de invoer bewaard blijft tussen fases en in localStorage.
+// Gecontroleerd formulier: waarden komen uit App (form), wijzigen via onField.
 export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
   const { t, isRtl } = useLang();
 
@@ -16,7 +16,10 @@ export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
       <h2 className="form-title">{t.formTitle}</h2>
       <form onSubmit={handleSubmit} className="form">
         <div className="field">
-          <label htmlFor="callerName">{t.callerNameLabel}</label>
+          <label htmlFor="callerName">
+            <Icon name="user" size={16} />
+            {t.callerNameLabel}
+          </label>
           <input
             id="callerName"
             type="text"
@@ -30,7 +33,10 @@ export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
         </div>
 
         <div className="field">
-          <label htmlFor="company">{t.companyLabel}</label>
+          <label htmlFor="company">
+            <Icon name="briefcase" size={16} />
+            {t.companyLabel}
+          </label>
           <input
             id="company"
             type="text"
@@ -42,7 +48,10 @@ export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
         </div>
 
         <div className="field">
-          <label htmlFor="helpdesk">{t.phoneLabel}</label>
+          <label htmlFor="helpdesk">
+            <Icon name="phone" size={16} />
+            {t.phoneLabel}
+          </label>
           <input
             id="helpdesk"
             type="tel"
@@ -55,7 +64,10 @@ export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
         </div>
 
         <div className="field">
-          <label htmlFor="task">{t.taskLabel}</label>
+          <label htmlFor="task">
+            <Icon name="message" size={16} />
+            {t.taskLabel}
+          </label>
           <textarea
             id="task"
             required
@@ -69,11 +81,15 @@ export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
 
         {/* Optionele velden */}
         <div className="optional-divider">
-          <span>{t.optionalHeader}</span>
+          <Icon name="sparkles" size={14} />
+          {t.optionalHeader}
         </div>
 
         <div className="field">
-          <label htmlFor="goal">{t.goalLabel}</label>
+          <label htmlFor="goal">
+            <Icon name="target" size={16} />
+            {t.goalLabel}
+          </label>
           <textarea
             id="goal"
             rows={3}
@@ -86,7 +102,10 @@ export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
         </div>
 
         <div className="field">
-          <label htmlFor="email">{t.emailLabel}</label>
+          <label htmlFor="email">
+            <Icon name="mail" size={16} />
+            {t.emailLabel}
+          </label>
           <input
             id="email"
             type="email"
@@ -99,7 +118,10 @@ export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
         </div>
 
         <div className="field">
-          <label htmlFor="reference">{t.referenceLabel}</label>
+          <label htmlFor="reference">
+            <Icon name="hash" size={16} />
+            {t.referenceLabel}
+          </label>
           <input
             id="reference"
             type="text"
@@ -115,8 +137,12 @@ export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
 
         <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? t.callingStatus : t.startButton}
+          <span className="btn-icon" aria-hidden="true">
+            <Icon name="arrow-up-right" size={18} strokeWidth={2} />
+          </span>
         </button>
         <button type="button" className="btn-clear" onClick={onClear}>
+          <Icon name="eraser" size={16} />
           {t.clearFormButton}
         </button>
       </form>

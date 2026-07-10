@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLang } from './i18n.js';
+import Icon from './components/Icon.jsx';
 import BrandMark from './components/BrandMark.jsx';
 import LanguagePicker from './components/LanguagePicker.jsx';
 import CallForm from './components/CallForm.jsx';
@@ -183,7 +184,8 @@ export default function App() {
     <div className="app" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="topbar">
         <button type="button" className="lang-switch" onClick={changeLanguage}>
-          🌐 {t.changeLanguage}
+          <Icon name="globe" size={16} />
+          {t.changeLanguage}
         </button>
       </div>
 
@@ -195,6 +197,7 @@ export default function App() {
 
       {error && (
         <div className="alert" role="alert">
+          <Icon name="alert" size={18} />
           {error}
         </div>
       )}
@@ -218,10 +221,16 @@ export default function App() {
 
         {phase === PHASE.FAILED && (
           <section className="card failed">
+            <span className="failed-icon" aria-hidden="true">
+              <Icon name="alert" size={26} strokeWidth={2} />
+            </span>
             <h2>{t.callFailedTitle}</h2>
             <p>{t.callFailedMessage}</p>
             <button type="button" className="btn-primary" onClick={backToForm}>
               {t.retryButton}
+              <span className="btn-icon" aria-hidden="true">
+                <Icon name="rotate" size={18} strokeWidth={2} />
+              </span>
             </button>
           </section>
         )}
