@@ -413,6 +413,28 @@ function buildSystemPrompt(state) {
     ? `Als er een bevestiging, mail of document verstuurd kan worden, vraag de medewerker dit te sturen naar: ${state.email}. `
     : '';
 
+  // Verificatiegegevens: alleen aanwezig bij een premium-verificatiegesprek. De data is
+  // server-side geladen (nooit via URL/client) en wordt hieronder ALLEEN in de system prompt
+  // meegegeven — ze wordt nergens in de function-logs geprint.
+  const v = state.verificationData;
+  const verificatieInstructie = v
+    ? `
+
+IDENTITEITSVERIFICATIE (vertrouwelijk): je beschikt over de volgende gegevens van ${caller} om identiteit te bevestigen wanneer de helpdesk daar in FASE 3 om vraagt:
+- Voornaam: ${v.firstName || '(niet opgegeven)'}
+- Achternaam: ${v.lastName || '(niet opgegeven)'}
+- Postcode: ${v.postcode}
+- Huisnummer: ${v.houseNumber}
+- Geboortedatum: ${v.birthDate}
+${v.customerNumbers ? `- Klantnummer(s): ${v.customerNumbers}\n` : ''}
+STRIKTE REGELS voor deze gegevens:
+1. Geef ELK gegeven UITSLUITEND wanneer een ECHTE MEDEWERKER (fase 3) er expliciet om vraagt, en geef dan alleen het specifiek gevraagde gegeven — nooit meer dan gevraagd.
+2. Geef deze gegevens NOOIT aan een keuzemenu (fase 1) of in de wachtrij (fase 2), en spreek ze nooit uit "voor de zekerheid".
+3. Noem de geboortedatum voluit in woorden, bijvoorbeeld "12 maart 1985", niet als losse cijfers.
+4. Deel nooit gegevens die hier niet staan; je hebt geen BSN, bankrekening of ID — vraagt men daarom, zeg dan beleefd dat je die niet kunt verstrekken en dat de klant dat zelf moet doen.
+`
+    : '';
+
   return `Je bent een professionele AI-belassistent. Je belt NAMENS ${caller} naar de helpdesk van ${state.company}. Het gesprek verloopt volledig in het Nederlands.
 
 BELANGRIJK — verwar deze twee partijen niet:
@@ -429,7 +451,9 @@ FASE 2 — WACHTRIJ / WACHTEN: wachtmuziek, stilte, of een geautomatiseerde wach
 
 FASE 3 — ECHTE MEDEWERKER: een persoon die je persoonlijk aanspreekt, begroet, een vraag stelt of het gesprek echt aangaat ("goedemiddag, u spreekt met ...", "waarmee kan ik u helpen?", "met wie spreek ik?"). PAS NU voer je het gesprek. Hoor je de medewerker voor het eerst, open dan met: "Goedemiddag, u spreekt met een AI-assistent die belt namens ${caller}. Ik bel omdat ..." en beschrijf kort de reden (de taak).
 
-${referentieInstructie}${goalInstructie}${emailInstructie}
+${referentieInstructie}${goalInstructie}${emailInstructie}${verificatieInstructie}
+
+Vraagt de helpdesk of het menu of je "voor dit nummer of een ander nummer" belt (of iets soortgelijks over het telefoonnummer waarvandaan gebeld wordt): kies dan altijd de optie "een ander nummer". Je belt namens ${caller} en niet vanaf de eigen telefoonlijn van de klant.
 
 Als je een referentienummer, klantnummer of e-mailadres noemt, zet het duidelijk en op zichzelf, bijvoorbeeld "Het klantnummer is: 1439812202604." of "Het e-mailadres is: marcel@vos.nl." Schrijf cijferreeksen gewoon aaneengesloten en e-mailadressen gewoon met @ en punt — haal ze zelf NIET uit elkaar; het systeem zorgt voor een duidelijke uitspraak.
 

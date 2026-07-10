@@ -70,6 +70,68 @@ export const TRANSLATIONS = {
     phaseAgentSub: 'De assistent voert het gesprek…',
     phaseDone: 'Afgerond',
     phaseDoneSub: 'Het gesprek is afgerond.',
+    // --- Account & premium ---
+    accountButton: 'Account',
+    accountTitle: 'Je account',
+    signInTab: 'Inloggen',
+    signUpTab: 'Account aanmaken',
+    authPasswordLabel: 'Wachtwoord',
+    authSubmitSignIn: 'Inloggen',
+    authSubmitSignUp: 'Account aanmaken',
+    forgotPasswordLink: 'Wachtwoord vergeten?',
+    resetSent: 'Check je e-mail voor een herstel-link.',
+    signupConfirmSent: 'Bijna klaar — check je e-mail om je account te bevestigen.',
+    consentText:
+      'Ik geef toestemming om mijn verificatiegegevens (naam, postcode, huisnummer, geboortedatum) op te slaan zodat de assistent mijn identiteit bij helpdesks kan bevestigen. Ik kan deze altijd inzien, wijzigen of verwijderen.',
+    consentRequired: 'Geef eerst toestemming voordat we je gegevens kunnen opslaan.',
+    signOutButton: 'Uitloggen',
+    profileHeading: 'Verificatieprofiel',
+    profileIntro:
+      'Deze gegevens worden veilig opgeslagen en alleen gebruikt om je identiteit tijdens een gesprek te bevestigen. We slaan nooit BSN, bank- of ID-gegevens op.',
+    firstNameLabel: 'Voornaam',
+    lastNameLabel: 'Achternaam',
+    postcodeLabel: 'Postcode',
+    houseNumberLabel: 'Huisnummer',
+    birthDateLabel: 'Geboortedatum',
+    customerNumbersLabel: 'Klantnummer(s)',
+    customerNumbersHint: 'Optioneel — bijv. per bedrijf.',
+    saveProfileButton: 'Profiel opslaan',
+    profileSaved: 'Profiel opgeslagen.',
+    deleteAccountButton: 'Account & gegevens verwijderen',
+    deleteConfirmBody:
+      'Dit verwijdert je account en alle opgeslagen gegevens definitief. Dit kan niet ongedaan worden gemaakt. Doorgaan?',
+    deleteConfirmYes: 'Ja, alles verwijderen',
+    deleteDone: 'Je account en gegevens zijn verwijderd.',
+    cancelButton: 'Annuleren',
+    premiumBadge: 'Premium',
+    freeBadge: 'Gratis',
+    verifyToggleLabel: 'Identiteitsverificatie-gesprek',
+    verifyToggleHint: 'Gebruikt je opgeslagen profiel zodat de assistent je identiteit kan bevestigen.',
+    verifyNeedsLogin: 'Log in om een verificatiegesprek te starten.',
+    verifyNeedsPremium: 'Verificatiegesprekken vereisen een premium-account.',
+    verifyNeedsProfile: 'Vul eerst je verificatieprofiel volledig in.',
+    upgradeTitle: 'Premium-functie',
+    upgradeBody:
+      'Identiteitsverificatie-gesprekken horen bij premium. Gratis informatieve gesprekken blijven voor iedereen beschikbaar.',
+    upgradeButton: 'Word premium',
+    upgradeSoon: 'Betaling komt binnenkort — voorlopig wordt dit handmatig ingeschakeld.',
+    privacyLink: 'Privacyverklaring',
+    privacyTitle: 'Privacyverklaring',
+    privacyIntro: 'Hoe we omgaan met je gegevens (AVG).',
+    privacyWhatTitle: 'Wat we opslaan',
+    privacyWhatBody:
+      'Voor premium-verificatie: voornaam, achternaam, postcode, huisnummer, geboortedatum en optionele klantnummers. We slaan nooit BSN, bank/kaart of kopie ID op.',
+    privacyWhyTitle: 'Waarom',
+    privacyWhyBody:
+      'Uitsluitend zodat de assistent je identiteit bij een helpdesk kan bevestigen wanneer een echte medewerker daar expliciet om vraagt.',
+    privacyRetentionTitle: 'Hoe lang',
+    privacyRetentionBody:
+      'Totdat je ze wijzigt of verwijdert. Je account verwijderen wist alle gegevens direct.',
+    privacyRightsTitle: 'Je rechten',
+    privacyRightsBody:
+      'Je kunt al je gegevens altijd inzien, wijzigen en verwijderen vanuit je account (recht op inzage, correctie en vergetelheid).',
+    backButton: 'Terug',
+    loadingLabel: 'Laden…',
   },
   tr: {
     appTitle: 'AI Çağrı Asistanı',
@@ -278,6 +340,68 @@ export const TRANSLATIONS = {
     phaseAgentSub: 'The assistant is handling the call…',
     phaseDone: 'Done',
     phaseDoneSub: 'The call has finished.',
+    // --- Account & premium ---
+    accountButton: 'Account',
+    accountTitle: 'Your account',
+    signInTab: 'Sign in',
+    signUpTab: 'Create account',
+    authPasswordLabel: 'Password',
+    authSubmitSignIn: 'Sign in',
+    authSubmitSignUp: 'Create account',
+    forgotPasswordLink: 'Forgot password?',
+    resetSent: 'Check your email for a reset link.',
+    signupConfirmSent: 'Almost done — check your email to confirm your account.',
+    consentText:
+      'I consent to storing my verification data (name, postcode, house number, date of birth) to let the assistant verify my identity with helpdesks. I can view, edit or delete it at any time.',
+    consentRequired: 'Please give consent before we can store your data.',
+    signOutButton: 'Sign out',
+    profileHeading: 'Verification profile',
+    profileIntro:
+      'This data is stored securely and used only to verify your identity during a call. We never store BSN, bank or ID details.',
+    firstNameLabel: 'First name',
+    lastNameLabel: 'Last name',
+    postcodeLabel: 'Postcode',
+    houseNumberLabel: 'House number',
+    birthDateLabel: 'Date of birth',
+    customerNumbersLabel: 'Customer number(s)',
+    customerNumbersHint: 'Optional — e.g. per company.',
+    saveProfileButton: 'Save profile',
+    profileSaved: 'Profile saved.',
+    deleteAccountButton: 'Delete account & data',
+    deleteConfirmBody:
+      'This permanently deletes your account and all stored data. This cannot be undone. Continue?',
+    deleteConfirmYes: 'Yes, delete everything',
+    deleteDone: 'Your account and data have been deleted.',
+    cancelButton: 'Cancel',
+    premiumBadge: 'Premium',
+    freeBadge: 'Free',
+    verifyToggleLabel: 'Identity verification call',
+    verifyToggleHint: 'Uses your saved profile so the assistant can verify your identity.',
+    verifyNeedsLogin: 'Sign in to start a verification call.',
+    verifyNeedsPremium: 'Verification calls require a premium account.',
+    verifyNeedsProfile: 'Complete your verification profile first.',
+    upgradeTitle: 'Premium feature',
+    upgradeBody:
+      'Identity verification calls are part of premium. Free informative calls remain available to everyone.',
+    upgradeButton: 'Go premium',
+    upgradeSoon: 'Payment coming soon — for now this is enabled manually.',
+    privacyLink: 'Privacy policy',
+    privacyTitle: 'Privacy policy',
+    privacyIntro: 'How we handle your data (AVG/GDPR).',
+    privacyWhatTitle: 'What we store',
+    privacyWhatBody:
+      'For premium verification: first name, last name, postcode, house number, date of birth and optional customer numbers. We never store BSN, bank/card or ID copies.',
+    privacyWhyTitle: 'Why',
+    privacyWhyBody:
+      'Solely so the assistant can confirm your identity with a helpdesk when explicitly asked by a real agent.',
+    privacyRetentionTitle: 'How long',
+    privacyRetentionBody:
+      'Until you change or delete it. Deleting your account wipes all data immediately.',
+    privacyRightsTitle: 'Your rights',
+    privacyRightsBody:
+      'You can view, edit and delete all your data at any time from your account (right to access, rectification and erasure).',
+    backButton: 'Back',
+    loadingLabel: 'Loading…',
   },
   es: {
     appTitle: 'Asistente de Llamadas IA',
@@ -450,7 +574,9 @@ export function useLang() {
   const ctx = useContext(LangContext);
   if (!ctx) throw new Error('useLang moet binnen <LangProvider> gebruikt worden.');
   const { lang, setLang } = ctx;
-  const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+  // Engelse fallback-merge: ontbreekt een sleutel in de gekozen taal (bijv. nieuwe
+  // account-strings die nog niet in alle 8 talen staan), dan valt hij terug op Engels.
+  const t = { ...TRANSLATIONS.en, ...(TRANSLATIONS[lang] || {}) };
   const isRtl = Boolean(LANGUAGES.find((l) => l.code === lang)?.rtl);
   return { lang, setLang, t, isRtl };
 }

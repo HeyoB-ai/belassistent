@@ -54,6 +54,22 @@ altijd een knop om van taal te wisselen.
    | `ELEVENLABS_VOICE_AI` | Stem-ID (AI-assistent) — kies een NL/multilingual stem |
    | `ELEVENLABS_VOICE_AGENT` | Stem-ID (medewerker-simulatie, optioneel) |
 
+   **Supabase (optioneel — voor het premium-accountsysteem).** Zonder deze variabelen
+   werkt de app als gratis versie (geen account, geen verificatiegesprekken). Met deze
+   variabelen komen registratie/login en het beveiligde verificatieprofiel beschikbaar:
+
+   | Variabele | Waarde |
+   | --------- | ------ |
+   | `VITE_SUPABASE_URL` | Je Supabase project-URL (frontend; `VITE_`-prefix verplicht) |
+   | `VITE_SUPABASE_ANON_KEY` | De publieke anon-key (frontend; RLS beschermt de data) |
+   | `SUPABASE_URL` | Dezelfde project-URL (server-side functions) |
+   | `SUPABASE_SERVICE_ROLE_KEY` | De service-role sleutel — **NOOIT** naar de client; alleen server-side |
+
+   > **Verplicht bij Supabase:** voer eenmalig [`supabase/schema.sql`](supabase/schema.sql)
+   > uit in de Supabase SQL-editor. Dat maakt de `profiles`-tabel **met Row-Level Security
+   > aan**, zodat elke gebruiker uitsluitend zijn eigen profiel kan lezen/schrijven
+   > (`auth.uid() = user_id`). Zonder RLS is de data niet beschermd.
+
    Optionele gesprek-tuning (met defaults):
 
    | Variabele | Default | Wat het doet |
@@ -70,6 +86,42 @@ altijd een knop om van taal te wisselen.
 > **Let op (Twilio proefaccount):** een gratis Twilio-account kan alleen bellen naar
 > geverifieerde nummers. Verifieer het helpdesk-testnummer onder
 > **Twilio Console → Phone Numbers → Verified Caller IDs**.
+
+## Premium-accountsysteem & beveiliging
+
+Optioneel, via Supabase. Twee niveaus:
+
+- **Gratis (light):** informatieve gesprekken, geen account nodig — werkt precies als voorheen.
+- **Premium:** account + beveiligd **verificatieprofiel**, waarmee de AI identiteitsverificatie
+  bij een helpdesk kan doorlopen.
+
+Hoe de beveiliging is geregeld:
+
+- **Auth:** e-mail + wachtwoord via **Supabase Auth**. De app slaat **nooit** wachtwoorden op.
+- **Row-Level Security (RLS):** `supabase/schema.sql` zet RLS aan met vier policies
+  (select/insert/update/delete), telkens `auth.uid() = user_id`. Zo kan gebruiker A
+  fysiek niet bij de data van gebruiker B — de database dwingt dit af, niet de frontend.
+- **Alleen toegestane velden:** voornaam, achternaam, postcode, huisnummer, geboortedatum
+  en optionele klantnummers. Er zijn **bewust geen velden** voor BSN, bankrekening/creditcard
+  of ID-kopie.
+- **Verificatiedata blijft server-side:** bij een verificatiegesprek stuurt de frontend
+  alleen een `Authorization: Bearer <token>` mee. `initiate-call.js` verifieert het JWT met
+  de **service-role** sleutel, haalt het profiel op en zet het in de call-state (Netlify Blobs).
+  De data gaat **nooit** via een URL-parameter, en `call-status.js` geeft **alleen** een
+  whitelist terug (`status`, `phase`, `messages`, `outcome`) — dus nooit de verificatiedata.
+- **Geen plaintext-logging:** de verificatiedata wordt nergens in de function-logs geprint;
+  ze staat alleen in de (niet-gelogde) system-prompt van Claude.
+- **AI-gedrag:** de AI geeft postcode/huisnummer/geboortedatum **uitsluitend** wanneer een
+  **echte medewerker** (fase 3) er expliciet om vraagt — nooit aan een keuzemenu of in de
+  wachtrij, en nooit meer dan gevraagd.
+- **AVG/GDPR:** expliciete consent-checkbox vóór opslag (met tijdstip in `consent_at`);
+  privacyverklaring in de app; gebruiker kan alle data **inzien, wijzigen en verwijderen**.
+  Account verwijderen (`delete-account.js`) wist de profielrij én het auth-account echt
+  (recht op vergetelheid).
+
+> **Betaling (Stripe/Mollie)** is nog niet aangesloten. `is_premium` op het profiel is de
+> gate; zet die (voorlopig handmatig) op `true` om premium te activeren. De betaal-hook
+> hoort logisch bij het omzetten van `is_premium`.
 
 ## Lokaal ontwikkelen
 
@@ -98,19 +150,29 @@ belassistent/
 ├── netlify.toml
 ├── .env.example
 ├── .gitignore
+├── supabase/
+│   └── schema.sql            # profiles-tabel + RLS-policies (voer uit in Supabase)
 ├── src/
 │   ├── main.jsx
 │   ├── App.jsx
 │   ├── App.css
 │   ├── i18n.js
+│   ├── supabase.js           # client + AuthProvider/useAuth (null-safe zonder env)
 │   └── components/
 │       ├── LanguagePicker.jsx
 │       ├── CallForm.jsx
 │       ├── CallTranscript.jsx
-│       └── CallSummary.jsx
+│       ├── CallSummary.jsx
+│       ├── AuthPanel.jsx      # inloggen/registreren + consent
+│       ├── ProfilePanel.jsx   # profiel inzien/bewerken/verwijderen
+│       └── PrivacyPolicy.jsx  # AVG-privacyverklaring
 └── netlify/
+    ├── shared/
+    │   ├── tts.js
+    │   └── supabaseAdmin.js   # server-side admin-client + JWT-verificatie
     └── functions/
-        ├── initiate-call.js
+        ├── initiate-call.js   # + verificatiedata server-side laden
         ├── conversation.js
-        └── call-status.js
+        ├── call-status.js
+        └── delete-account.js  # recht op vergetelheid
 ```

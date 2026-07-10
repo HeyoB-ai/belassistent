@@ -188,7 +188,13 @@ body {
 .topbar {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
   margin-bottom: 20px;
+}
+
+.lang-switch.is-active {
+  color: var(--accent);
+  box-shadow: var(--shadow-2);
 }
 
 [dir='rtl'] .topbar {
@@ -988,6 +994,340 @@ body {
 
 .failed .btn-primary {
   margin-top: 18px;
+}
+
+/* ---------- Account / auth / privacy ---------- */
+.account-card {
+  animation: enter-up var(--slow) var(--ease-out) both;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--ok-bg);
+  color: var(--ok);
+  border-radius: var(--r);
+  padding: 13px 16px;
+  margin-bottom: 18px;
+  font-size: 0.88rem;
+  box-shadow: var(--shadow-1);
+}
+
+.notice .icon {
+  flex-shrink: 0;
+}
+
+/* Tabs (inloggen / registreren) */
+.auth-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--surface-2);
+  border-radius: var(--pill);
+  padding: 5px;
+  margin-bottom: 22px;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.auth-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border: none;
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--fast) var(--ease-out), background var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out), transform var(--fast) var(--spring);
+}
+
+.auth-tab.is-active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-1);
+}
+
+.auth-tab:active {
+  transform: scale(0.97);
+}
+
+/* Consent-checkbox */
+.consent-row,
+.verify-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+
+.consent-row input[type='checkbox'],
+.verify-row input[type='checkbox'] {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.consent-text {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.inline-link:hover {
+  color: var(--accent-strong);
+}
+
+/* Verificatie-toggle in het belformulier */
+.verify-toggle {
+  background: var(--surface-2);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+
+.verify-toggle.is-disabled {
+  opacity: 0.72;
+}
+
+.verify-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.verify-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.verify-label .icon {
+  color: var(--accent);
+}
+
+.verify-note {
+  margin: 10px 0 0;
+  padding-inline-start: 32px;
+  font-size: 0.8rem;
+  color: var(--warn);
+}
+
+/* Twee velden naast elkaar (naam, postcode/huisnummer) */
+.field-row {
+  display: flex;
+  gap: 14px;
+}
+
+.field-row .field {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 420px) {
+  .field-row {
+    flex-direction: column;
+  }
+}
+
+/* Account-kop: e-mail + badge + uitloggen */
+.account-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.account-email {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.badge-premium {
+  background: linear-gradient(140deg, var(--accent-bright), var(--accent));
+  color: var(--on-accent);
+}
+
+.badge-free {
+  background: var(--surface-2);
+  color: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+
+.badge.sm {
+  padding: 3px 9px;
+  font-size: 0.68rem;
+  border-radius: var(--pill);
+}
+
+.btn-clear.inline {
+  width: auto;
+  padding: 9px 14px;
+  font-size: 0.82rem;
+}
+
+/* Uitleg-blokje boven het profiel */
+.profile-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--accent-soft);
+  color: var(--ink-soft);
+  border-radius: var(--r);
+  padding: 13px 15px;
+  margin-bottom: 22px;
+  font-size: 0.84rem;
+}
+
+.profile-intro .icon {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.profile-intro p {
+  margin: 0;
+}
+
+/* Account-footer: privacy-link + verwijderen */
+.account-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: none;
+  border-radius: var(--pill);
+  padding: 13px 22px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--fast) var(--spring), filter var(--fast) var(--ease-out);
+}
+
+.btn-danger:hover {
+  filter: brightness(0.97);
+}
+
+.btn-danger:active {
+  transform: scale(0.98);
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.delete-confirm {
+  background: var(--danger-bg);
+  border-radius: var(--r);
+  padding: 16px;
+  animation: rise var(--dur) var(--ease-out) both;
+}
+
+.delete-confirm p {
+  margin: 0 0 14px;
+  color: var(--danger);
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.delete-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.delete-actions .btn-danger,
+.delete-actions .btn-clear {
+  width: auto;
+  flex: 1;
+}
+
+/* Privacyverklaring */
+.privacy-card .btn-clear.inline {
+  margin-bottom: 12px;
+}
+
+.privacy-intro {
+  color: var(--muted);
+  margin: 0 0 22px;
+  font-size: 0.9rem;
+}
+
+.privacy-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.privacy-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+
+.privacy-section h3 .icon {
+  color: var(--accent);
+}
+
+.privacy-section p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.icon.flip {
+  transform: scaleX(-1);
 }
 
 /* ---------- Footer ---------- */

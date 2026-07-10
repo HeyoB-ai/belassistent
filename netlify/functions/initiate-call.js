@@ -1,8 +1,10 @@
 import twilio from 'twilio';
 import { getStore } from '@netlify/blobs';
+import { getAdmin, bearer, getUserFromToken } from '../shared/supabaseAdmin.js';
 
 // POST /api/initiate-call
-// Body: { company, helpdesk_number, task, language }
+// Body: { company, helpdesk_number, task, language, verification? }
+// Optionele header: Authorization: Bearer <supabase token> (nodig voor verificatie).
 // Start een uitgaand Twilio-gesprek naar de helpdesk en zet de begintoestand
 // in Netlify Blobs. Geeft { callSid } terug.
 export default async function handler(req) {
@@ -25,9 +27,47 @@ export default async function handler(req) {
   const goal = (body.goal || '').trim();
   const email = (body.email || '').trim();
   const reference = (body.reference || '').trim();
+  const wantsVerification = body.verification === true;
 
   if (!callerName || !company || !helpdeskNumber || !task) {
     return json({ error: 'callerName, company, helpdesk_number en task zijn verplicht.' }, 400);
+  }
+
+  // --- Verificatie-gesprek: haal profieldata UITSLUITEND server-side op. ---
+  // De data komt nooit via de URL of client binnen; alleen deze function leest ze
+  // (na JWT-verificatie) met de service-role sleutel, en zet ze in de call-state
+  // die de client via /api/call-status NIET terugkrijgt.
+  let verificationData = null;
+  if (wantsVerification) {
+    const admin = getAdmin();
+    if (!admin) {
+      return json({ error: 'Verificatie is niet beschikbaar: Supabase ontbreekt.', code: 'not_configured' }, 500);
+    }
+    const user = await getUserFromToken(admin, bearer(req));
+    if (!user) {
+      return json({ error: 'Log in om een verificatiegesprek te starten.', code: 'auth_required' }, 401);
+    }
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('first_name, last_name, postcode, house_number, birth_date, customer_numbers, is_premium')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!profile || !profile.is_premium) {
+      return json({ error: 'Verificatiegesprekken vereisen een premium-account.', code: 'premium_required' }, 403);
+    }
+    if (!profile.postcode || !profile.house_number || !profile.birth_date) {
+      return json({ error: 'Vul eerst je verificatieprofiel volledig in.', code: 'profile_incomplete' }, 400);
+    }
+
+    verificationData = {
+      firstName: profile.first_name || '',
+      lastName: profile.last_name || '',
+      postcode: profile.postcode,
+      houseNumber: profile.house_number,
+      birthDate: profile.birth_date,
+      customerNumbers: profile.customer_numbers || '',
+    };
   }
 
   const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, URL } = process.env;
@@ -72,6 +112,9 @@ export default async function handler(req) {
     status: 'initiated',
     phase: 'connecting',
     outcome: null,
+    // Server-side only. Wordt NOOIT door /api/call-status teruggegeven aan de client.
+    verification: Boolean(verificationData),
+    verificationData,
     createdAt: new Date().toISOString(),
   };
   await store.setJSON(call.sid, state);

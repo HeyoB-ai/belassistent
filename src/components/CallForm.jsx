@@ -2,7 +2,19 @@ import { useLang } from '../i18n.js';
 import Icon from './Icon.jsx';
 
 // Gecontroleerd formulier: waarden komen uit App (form), wijzigen via onField.
-export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
+// verification/onVerification sturen de identiteitsverificatie-toggle; verifyNote toont
+// waarom die (nog) niet kan (inloggen/premium/profiel).
+export default function CallForm({
+  form,
+  onField,
+  onSubmit,
+  onClear,
+  busy,
+  verification = false,
+  onVerification,
+  verifyNote = '',
+  verifyDisabled = false,
+}) {
   const { t, isRtl } = useLang();
 
   function handleSubmit(e) {
@@ -132,6 +144,28 @@ export default function CallForm({ form, onField, onSubmit, onClear, busy }) {
           />
           <p className="field-hint">{t.referenceHint}</p>
         </div>
+
+        {/* Identiteitsverificatie (premium) */}
+        {onVerification && (
+          <div className={`verify-toggle${verifyDisabled ? ' is-disabled' : ''}`}>
+            <label className="verify-row">
+              <input
+                type="checkbox"
+                checked={verification}
+                disabled={verifyDisabled}
+                onChange={(e) => onVerification(e.target.checked)}
+              />
+              <span className="verify-text">
+                <span className="verify-label">
+                  <Icon name="shield" size={16} />
+                  {t.verifyToggleLabel}
+                </span>
+                <span className="field-hint">{t.verifyToggleHint}</span>
+              </span>
+            </label>
+            {verifyNote && <p className="verify-note">{verifyNote}</p>}
+          </div>
+        )}
 
         <p className="form-hint">{t.formHint}</p>
 

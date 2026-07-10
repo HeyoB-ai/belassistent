@@ -1,17 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLang } from './i18n.js';
+import { useAuth } from './supabase.js';
 import Icon from './components/Icon.jsx';
 import BrandMark from './components/BrandMark.jsx';
 import LanguagePicker from './components/LanguagePicker.jsx';
 import CallForm from './components/CallForm.jsx';
 import CallTranscript from './components/CallTranscript.jsx';
 import CallSummary from './components/CallSummary.jsx';
+import AuthPanel from './components/AuthPanel.jsx';
+import ProfilePanel from './components/ProfilePanel.jsx';
+import PrivacyPolicy from './components/PrivacyPolicy.jsx';
 
 const PHASE = {
   FORM: 'form',
   LIVE: 'live',
   DONE: 'done',
   FAILED: 'failed',
+};
+
+// Aparte "schermen" naast de belflow: account (in/uitloggen + profiel) en privacy.
+const VIEW = {
+  CALL: 'call',
+  ACCOUNT: 'account',
+  PRIVACY: 'privacy',
 };
 
 const TERMINAL = ['completed', 'busy', 'no-answer', 'failed', 'canceled'];
@@ -42,10 +53,14 @@ function loadForm() {
 
 export default function App() {
   const { lang, setLang, t, isRtl } = useLang();
+  const { configured, user, session, isPremium, profileComplete } = useAuth();
 
   const [phase, setPhase] = useState(PHASE.FORM);
+  const [view, setView] = useState(VIEW.CALL);
   const [error, setError] = useState(null);
   const [starting, setStarting] = useState(false);
+
+  const [verification, setVerification] = useState(false);
 
   const [form, setForm] = useState(loadForm);
 
@@ -123,13 +138,27 @@ export default function App() {
     setError(null);
     setStarting(true);
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      // Alleen bij een verificatiegesprek sturen we het Supabase-token mee, zodat de
+      // server-side function de verificatiedata mag ophalen. De data zelf gaat NOOIT
+      // via de client of URL.
+      if (verification && session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
       const res = await fetch('/api/initiate-call', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, language: lang }),
+        headers,
+        body: JSON.stringify({ ...form, language: lang, verification }),
       });
       if (!res.ok) {
-        const detail = await res.text();
+        // Vertaal bekende gating-codes naar nette meldingen.
+        let detail = '';
+        try {
+          const body = await res.json();
+          detail = mapCallError(body.code) || body.error || '';
+        } catch {
+          detail = await res.text().catch(() => '');
+        }
         throw new Error(detail || `Status ${res.status}`);
       }
       const data = await res.json();
@@ -176,6 +205,28 @@ export default function App() {
     setLang(null);
   }
 
+  function mapCallError(code) {
+    if (code === 'auth_required') return t.verifyNeedsLogin;
+    if (code === 'premium_required') return t.verifyNeedsPremium;
+    if (code === 'profile_incomplete') return t.verifyNeedsProfile;
+    return null;
+  }
+
+  // Reden waarom verificatie (nog) niet kan; leeg = toegestaan.
+  const verifyReason = !user
+    ? t.verifyNeedsLogin
+    : !isPremium
+      ? t.verifyNeedsPremium
+      : !profileComplete
+        ? t.verifyNeedsProfile
+        : '';
+  const verifyDisabled = Boolean(verifyReason);
+
+  // Houd de toggle uit als aan de voorwaarden niet (meer) is voldaan.
+  useEffect(() => {
+    if (verifyDisabled && verification) setVerification(false);
+  }, [verifyDisabled, verification]);
+
   if (!lang) {
     return <LanguagePicker />;
   }
@@ -187,6 +238,17 @@ export default function App() {
           <Icon name="globe" size={16} />
           {t.changeLanguage}
         </button>
+        {configured && (
+          <button
+            type="button"
+            className={`lang-switch${view === VIEW.ACCOUNT ? ' is-active' : ''}`}
+            onClick={() => setView(view === VIEW.CALL ? VIEW.ACCOUNT : VIEW.CALL)}
+          >
+            <Icon name={user ? 'user' : 'log-in'} size={16} />
+            {user ? t.accountButton : t.signInTab}
+            {user && isPremium && <span className="badge badge-premium sm">{t.premiumBadge}</span>}
+          </button>
+        )}
       </div>
 
       <header className="header">
@@ -203,23 +265,40 @@ export default function App() {
       )}
 
       <main>
-        {phase === PHASE.FORM && (
+        {/* Privacyverklaring — bereikbaar vanuit account en consent. */}
+        {view === VIEW.PRIVACY && <PrivacyPolicy onBack={() => setView(VIEW.ACCOUNT)} />}
+
+        {/* Account: inloggen/registreren of het profiel beheren. */}
+        {view === VIEW.ACCOUNT &&
+          (user ? (
+            <ProfilePanel onPrivacy={() => setView(VIEW.PRIVACY)} />
+          ) : (
+            <AuthPanel onPrivacy={() => setView(VIEW.PRIVACY)} />
+          ))}
+
+        {view === VIEW.CALL && phase === PHASE.FORM && (
           <CallForm
             form={form}
             onField={onField}
             onSubmit={startCall}
             onClear={clearForm}
             busy={starting}
+            verification={verification}
+            onVerification={configured ? setVerification : undefined}
+            verifyNote={verifyReason}
+            verifyDisabled={verifyDisabled}
           />
         )}
 
-        {phase === PHASE.LIVE && (
+        {view === VIEW.CALL && phase === PHASE.LIVE && (
           <CallTranscript phase={callPhase} company={form.company} messages={messages} />
         )}
 
-        {phase === PHASE.DONE && <CallSummary outcome={outcome} onReset={backToForm} />}
+        {view === VIEW.CALL && phase === PHASE.DONE && (
+          <CallSummary outcome={outcome} onReset={backToForm} />
+        )}
 
-        {phase === PHASE.FAILED && (
+        {view === VIEW.CALL && phase === PHASE.FAILED && (
           <section className="card failed">
             <span className="failed-icon" aria-hidden="true">
               <Icon name="alert" size={26} strokeWidth={2} />
