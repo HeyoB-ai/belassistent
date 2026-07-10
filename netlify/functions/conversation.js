@@ -57,6 +57,18 @@ function holdElapsedMs(state) {
   return Number.isFinite(started) ? Date.now() - started : 0;
 }
 
+// Verwijdert ALLE signalen/gedachten tussen haken ([WACHTEN], [DTMF:X], [EINDE] en
+// eventuele meta-commentaar zoals "[Ik wacht op audio…]"). Wat overblijft is uitsluitend
+// de echte, uit te spreken tekst. Wordt gebruikt vóór TTS én vóór het transcript, zodat
+// er nooit interne signalen lekken.
+function stripSignals(text) {
+  return (text || '')
+    .replace(/\[[^\]]*\]/g, ' ') // alle [ ... ]-segmenten
+    .replace(/[[\]]/g, ' ') // losse haken
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function withTimeout(promise, ms, label) {
   let timer;
   const timeout = new Promise((_, reject) => {
@@ -260,10 +272,15 @@ async function handleTurn(req) {
   }
   state.retryCount = 0; // gelukt → retry-teller resetten
 
+  // Detecteer signalen in de RUWE reply; de te SPREKEN tekst is de reply ZONDER
+  // signalen én zonder gedachten tussen haken. Zo lekt er nooit interne redenering.
+  const dtmfMatch = reply.match(/\[DTMF:\s*([0-9*#]+)\]/i);
+  const wantsEinde = /\[EINDE\]/i.test(reply);
+  const spoken = stripSignals(reply);
+
   // ── Keuzemenu? Verstuur DTMF — ZONDER vulwoord. ──────────────────────────
   // Tegen een geautomatiseerd menu zegt een mens ook niks; de filler is daar
   // onnatuurlijk en kan het IVR-systeem storen. Dus: alleen de toon + luisteren.
-  const dtmfMatch = reply.match(/\[DTMF:\s*([0-9*#]+)\]/i);
   if (dtmfMatch) {
     console.log(`[conv] callSid=${callSid} fase=menu`);
     state.phase = 'menu';
@@ -291,8 +308,9 @@ async function handleTurn(req) {
   }
 
   // ── Fase 2: WACHTRIJ / HOLD — niets zeggen, alleen blijven luisteren. ─────
-  // Reageer NOOIT inhoudelijk op wachtmuziek of "u wordt zo geholpen"; sluit NIET af.
-  if (/\[WACHTEN\]/i.test(reply)) {
+  // Ook wanneer er ná het strippen GEEN echte spraak overblijft (Claude gaf alleen een
+  // signaal of een gedachte tussen haken): dan zwijgen, niets tonen, fase blijft wachtrij.
+  if (/\[WACHTEN\]/i.test(reply) || !spoken) {
     console.log(`[conv] callSid=${callSid} fase=wachtrij`);
     state.phase = 'waiting';
     state.dtmfCount = 0; // voorbij het menu
@@ -324,12 +342,11 @@ async function handleTurn(req) {
     return twiml(vr.toString());
   }
 
-  // ── Fase 3: ECHTE MEDEWERKER — (vulwoord) + spraakantwoord. ──────────────
+  // ── Fase 3: ECHTE MEDEWERKER — alleen wanneer er ECHTE spraak is (vulwoord + spraak). ──
   console.log(`[conv] callSid=${callSid} fase=medewerker`);
   state.phase = 'agent';
   state.dtmfCount = 0; // medewerker bereikt → menu-teller resetten
-  const done = /\[EINDE\]/i.test(reply);
-  const spoken = reply.replace(/\[EINDE\]/gi, '').trim() || 'Dank u wel. Tot ziens.';
+  const done = wantsEinde;
 
   // Geen vulwoord op de allereerste gespreksbeurt: de introductie begint direct
   // (geen "Even kijken" vooraf). Vanaf de vervolgbeurten maskeert de filler wel.
@@ -418,7 +435,9 @@ Als je een referentienummer, klantnummer of e-mailadres noemt, zet het duidelijk
 
 Voer het gesprek (fase 3) beleefd, kort en doelgericht. Houd antwoorden kort, zoals in een echt telefoongesprek, meestal één of twee zinnen. Reageer natuurlijk op wat de medewerker zegt.
 
-[EINDE] geef je UITSLUITEND als het doel écht met een medewerker is bereikt, of als de medewerker het gesprek zelf afsluit. Een wachtrij-boodschap, wachtmuziek, stilte of "u wordt zo geholpen" is NOOIT een reden voor [EINDE] — geef dan [WACHTEN].`;
+[EINDE] geef je UITSLUITEND als het doel écht met een medewerker is bereikt, of als de medewerker het gesprek zelf afsluit. Een wachtrij-boodschap, wachtmuziek, stilte of "u wordt zo geholpen" is NOOIT een reden voor [EINDE] — geef dan [WACHTEN].
+
+STRIKT FORMAT (heel belangrijk): geef per beurt OFWEL uitsluitend één signaal ([WACHTEN], [DTMF:X] of [EINDE]), OFWEL uitsluitend de letterlijke tekst die je hardop wilt zeggen tegen de helpdesk. Geef NOOIT je interne overwegingen, gedachten of beschrijvingen van wat je hoort, en zet zulke meta-tekst ook NOOIT tussen haken. Dus schrijf bijvoorbeeld niet "[Ik wacht op audio en luister aandachtig]" — als je nog niets van een mens hoort, geef je simpelweg [WACHTEN] en verder niets.`;
 }
 
 async function callClaude(anthropic, system, messages, model = MODEL_TURN, maxTokens = 150) {
