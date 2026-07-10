@@ -48,6 +48,14 @@ function addListenGather(vr, webhookUrl, speechTimeout = 'auto') {
 // tegen de function-timeout aanloopt en een 502 geeft.
 const CLAUDE_TIMEOUT_MS = 6000;
 const MAX_TURN_RETRY = 2; // aantal "moment"-fallbacks per beurt voordat we netjes afronden.
+const WAITING_MARKER = 'In de wachtrij…';
+
+// Verstreken tijd sinds de call is aangemaakt (voor de absolute wachttijd-bovengrens).
+// Een normale wachtrij mag lang duren; dit dient alleen tegen een kapot nummer.
+function holdElapsedMs(state) {
+  const started = state && state.createdAt ? Date.parse(state.createdAt) : NaN;
+  return Number.isFinite(started) ? Date.now() - started : 0;
+}
 
 function withTimeout(promise, ms, label) {
   let timer;
@@ -168,10 +176,10 @@ async function handleTurn(req) {
   // Voice-webhook: het gesprek loopt.
   state.status = 'in-progress';
 
-  // Instelbaar via env (per-request; defaults: auto / 5 / 6).
+  // Instelbaar via env (per-request; defaults: auto / 5 / 10 min).
   const speechTimeout = process.env.SPEECH_TIMEOUT || 'auto';
   const maxDtmf = intEnv('MAX_DTMF', 5);
-  const maxListen = intEnv('MAX_LISTEN', 6);
+  const maxHoldMs = intEnv('MAX_HOLD_MINUTES', 10) * 60000;
 
   const step = new URL(req.url).searchParams.get('step');
   const turnStart = Date.now();
@@ -183,17 +191,21 @@ async function handleTurn(req) {
   // IVR-keuzemenu — daar mogen we niet overheen praten. We vangen spraak én DTMF op.
   if (!speech && step !== 'retry') {
     state.listenCount = (state.listenCount || 0) + 1;
-    if (state.listenCount > maxListen) {
-      console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (geen reactie, ophangen)`);
-      return twiml(hangupResponse('Ik krijg helaas geen reactie. Ik probeer het later opnieuw. Tot ziens.'));
+    console.log(`[conv] callSid=${callSid} fase=wachtrij (stilte/muziek, luisterbeurt ${state.listenCount})`);
+    // Stilte/wachtmuziek is normaal wachten — NIET ophangen op een luister-teller. Alleen
+    // een ruime absolute bovengrens (MAX_HOLD_MINUTES) tegen een kapot nummer.
+    if (holdElapsedMs(state) > maxHoldMs) {
+      state.messages.push({ speaker: 'system', text: 'Maximale wachttijd bereikt zonder medewerker.' });
+      await store.setJSON(callSid, state);
+      console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (wachttijd-limiet, ophangen)`);
+      return twiml(hangupResponse('Het is helaas niet gelukt om iemand te bereiken. Ik probeer het later opnieuw. Tot ziens.'));
     }
     await store.setJSON(callSid, state);
 
     const vr = new VoiceResponse();
     addListenGather(vr, webhookUrl, speechTimeout);
-    // Stilte binnen de gather → opnieuw luisteren (begrensd door listenCount).
     vr.redirect({ method: 'POST' }, `${webhookUrl}?step=listen`);
-    console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (luisteren)`);
+    console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (blijven luisteren)`);
     return twiml(vr.toString());
   }
 
@@ -250,6 +262,7 @@ async function handleTurn(req) {
   // onnatuurlijk en kan het IVR-systeem storen. Dus: alleen de toon + luisteren.
   const dtmfMatch = reply.match(/\[DTMF:\s*([0-9*#]+)\]/i);
   if (dtmfMatch) {
+    console.log(`[conv] callSid=${callSid} fase=menu`);
     state.dtmfCount = (state.dtmfCount || 0) + 1;
 
     // Loop-beveiliging: te lang in keuzemenu's.
@@ -273,7 +286,41 @@ async function handleTurn(req) {
     return twiml(vr.toString());
   }
 
-  // ── Echt gesprek: (vulwoord) + spraakantwoord. ───────────────────────────
+  // ── Fase 2: WACHTRIJ / HOLD — niets zeggen, alleen blijven luisteren. ─────
+  // Reageer NOOIT inhoudelijk op wachtmuziek of "u wordt zo geholpen"; sluit NIET af.
+  if (/\[WACHTEN\]/i.test(reply)) {
+    console.log(`[conv] callSid=${callSid} fase=wachtrij`);
+    state.dtmfCount = 0; // voorbij het menu
+
+    if (holdElapsedMs(state) > maxHoldMs) {
+      state.messages.push({ speaker: 'system', text: 'Maximale wachttijd bereikt zonder medewerker.' });
+      await store.setJSON(callSid, state);
+      console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (wachttijd-limiet, ophangen)`);
+      return twiml(hangupResponse('Het is helaas niet gelukt om iemand te bereiken. Ik probeer het later opnieuw. Tot ziens.'));
+    }
+
+    // Houd de historie schoon: verwijder de zojuist opgeslagen wachtrij-mededeling en
+    // toon één keer een wachtrij-indicator in het transcript.
+    if (state.messages.length && state.messages[state.messages.length - 1].speaker === 'agent') {
+      state.messages.pop();
+    }
+    const last = state.messages[state.messages.length - 1];
+    if (!last || last.text !== WAITING_MARKER) {
+      state.messages.push({ speaker: 'system', text: WAITING_MARKER });
+    }
+    await store.setJSON(callSid, state);
+
+    // Geen spraak, geen filler — alleen blijven luisteren.
+    const vr = new VoiceResponse();
+    vr.pause({ length: 1 });
+    addListenGather(vr, webhookUrl, speechTimeout);
+    vr.redirect({ method: 'POST' }, `${webhookUrl}?step=listen`);
+    console.log(`[conv] einde callSid=${callSid} turn=${Date.now() - turnStart}ms (wachtrij, blijven luisteren)`);
+    return twiml(vr.toString());
+  }
+
+  // ── Fase 3: ECHTE MEDEWERKER — (vulwoord) + spraakantwoord. ──────────────
+  console.log(`[conv] callSid=${callSid} fase=medewerker`);
   state.dtmfCount = 0; // medewerker bereikt → menu-teller resetten
   const done = /\[EINDE\]/i.test(reply);
   const spoken = reply.replace(/\[EINDE\]/gi, '').trim() || 'Dank u wel. Tot ziens.';
@@ -351,17 +398,21 @@ BELANGRIJK — verwar deze twee partijen niet:
 
 De taak namens ${caller} is: ${state.task}.
 
-Elke beurt hoor je audio van de kant die je belt. Bepaal eerst wat je hoort:
+Elke beurt hoor je audio van de kant die je belt. Bepaal eerst in welke van DRIE fasen het gesprek zit en handel daarnaar:
 
-1) EEN KEUZEMENU (IVR): een geautomatiseerde stem die opties opnoemt met cijfers, zoals "voor bezorging toets 1, voor facturen toets 2, voor overige vragen toets 9". Kies dan de optie die het best past bij de taak van ${caller} en geef als ALLEREERSTE regel exact [DTMF:X], waarbij X het te kiezen cijfer is (bijvoorbeeld [DTMF:1]). Is een optie onduidelijk, kies dan de meest waarschijnlijke route naar een echte medewerker (vaak "overige vragen" of "klantenservice"). Praat verder niet — geef alleen het [DTMF:X]-signaal.
+FASE 1 — KEUZEMENU (IVR): een geautomatiseerde stem die opties opnoemt met cijfers, zoals "voor bezorging toets 1, voor facturen toets 2, voor overige vragen toets 9". Kies de optie die het best past bij de taak van ${caller} en geef als ALLEREERSTE regel exact [DTMF:X] (X = het cijfer, bijvoorbeeld [DTMF:1]). Bij twijfel de meest waarschijnlijke route naar een echte medewerker ("overige vragen" of "klantenservice"). Praat verder niet.
 
-2) EEN ECHTE MEDEWERKER (een mens die het gesprek aangaat): voer dan een normaal gesprek. Hoor je de medewerker voor het eerst, open dan met: "Goedemiddag, u spreekt met een AI-assistent die belt namens ${caller}. Ik bel omdat ..." en beschrijf kort de reden (de taak).
+FASE 2 — WACHTRIJ / WACHTEN: wachtmuziek, stilte, of een geautomatiseerde wachtmededeling zoals "blijf aan de lijn", "u wordt zo snel mogelijk geholpen", "alle medewerkers zijn momenteel in gesprek", "uw geschatte wachttijd is X minuten", "een moment geduld", "we helpen u zo", of herhalende meldingen. Dit is GEEN medewerker. Reageer NIET inhoudelijk, stel je NIET voor en bespreek de taak NIET. Geef als antwoord UITSLUITEND exact [WACHTEN] en verder niets. Blijf gewoon aan de lijn wachten. Sluit het gesprek in deze fase NOOIT af — een wachtrij is geen afronding, ook niet als hij lang duurt.
+
+FASE 3 — ECHTE MEDEWERKER: een persoon die je persoonlijk aanspreekt, begroet, een vraag stelt of het gesprek echt aangaat ("goedemiddag, u spreekt met ...", "waarmee kan ik u helpen?", "met wie spreek ik?"). PAS NU voer je het gesprek. Hoor je de medewerker voor het eerst, open dan met: "Goedemiddag, u spreekt met een AI-assistent die belt namens ${caller}. Ik bel omdat ..." en beschrijf kort de reden (de taak).
 
 ${referentieInstructie}${goalInstructie}${emailInstructie}
 
 Als je een referentienummer, klantnummer of e-mailadres noemt, zet het duidelijk en op zichzelf, bijvoorbeeld "Het klantnummer is: 1439812202604." of "Het e-mailadres is: marcel@vos.nl." Schrijf cijferreeksen gewoon aaneengesloten en e-mailadressen gewoon met @ en punt — haal ze zelf NIET uit elkaar; het systeem zorgt voor een duidelijke uitspraak.
 
-Voer het gesprek beleefd, kort en doelgericht. Houd antwoorden kort, zoals in een echt telefoongesprek, meestal één of twee zinnen. Reageer natuurlijk op wat de medewerker zegt. Geef per beurt alleen wat je zou zeggen, kort. Als het gewenste doel bereikt is of het gesprek logisch eindigt, geef dan als laatste regel exact [EINDE].`;
+Voer het gesprek (fase 3) beleefd, kort en doelgericht. Houd antwoorden kort, zoals in een echt telefoongesprek, meestal één of twee zinnen. Reageer natuurlijk op wat de medewerker zegt.
+
+[EINDE] geef je UITSLUITEND als het doel écht met een medewerker is bereikt, of als de medewerker het gesprek zelf afsluit. Een wachtrij-boodschap, wachtmuziek, stilte of "u wordt zo geholpen" is NOOIT een reden voor [EINDE] — geef dan [WACHTEN].`;
 }
 
 async function callClaude(anthropic, system, messages, model = MODEL_TURN, maxTokens = 150) {

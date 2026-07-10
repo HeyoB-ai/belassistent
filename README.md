@@ -60,7 +60,7 @@ altijd een knop om van taal te wisselen.
    | --------- | ------- | ------------ |
    | `SPEECH_TIMEOUT` | `auto` | `speechTimeout` van de `<Gather>`. `auto` vangt hele IVR-menu-opties op; `1` / `1.5` maakt de beurt-overgang bij mensgesprekken sneller. |
    | `MAX_DTMF` | `5` | Max toetskeuzes zonder medewerker; daarna probeert de AI `0` (operator) en hangt anders netjes op. |
-   | `MAX_LISTEN` | `6` | Max luisterbeurten bij aanhoudende stilte voordat de AI netjes ophangt. |
+   | `MAX_HOLD_MINUTES` | `10` | Absolute wachttijd-bovengrens. Een normale wachtrij mag lang duren; dit grijpt alleen in tegen een nummer dat nooit een medewerker geeft. |
 
    > `URL` hoef je **niet** te zetten: Netlify vult die automatisch met de deploy-URL,
    > waarmee de app de Twilio-webhook-URL opbouwt.
