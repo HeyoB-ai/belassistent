@@ -139,6 +139,9 @@ const LANGUAGE_NAMES = {
   es: 'Spaans',
   fr: 'Frans',
   zh: 'Chinees',
+  uk: 'Oekraïens',
+  fa: 'Perzisch (Farsi)',
+  ur: 'Urdu',
 };
 
 // Terminale Twilio-statussen — hierbij genereren we de samenvatting.

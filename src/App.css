@@ -553,6 +553,9 @@ body {
 .lang-list li:nth-child(6) { animation-delay: 230ms; }
 .lang-list li:nth-child(7) { animation-delay: 270ms; }
 .lang-list li:nth-child(8) { animation-delay: 310ms; }
+.lang-list li:nth-child(9) { animation-delay: 350ms; }
+.lang-list li:nth-child(10) { animation-delay: 390ms; }
+.lang-list li:nth-child(11) { animation-delay: 430ms; }
 
 .lang-row {
   width: 100%;
