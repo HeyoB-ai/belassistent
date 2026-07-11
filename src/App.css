@@ -1142,6 +1142,22 @@ body {
   color: var(--warn);
 }
 
+.verify-arranged {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding-inline-start: 32px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ok);
+}
+
+.verify-arranged .icon {
+  color: var(--ok);
+  flex-shrink: 0;
+}
+
 /* Twee velden naast elkaar (naam, postcode/huisnummer) */
 .field-row {
   display: flex;

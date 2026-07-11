@@ -14,6 +14,8 @@ export default function CallForm({
   onVerification,
   verifyNote = '',
   verifyDisabled = false,
+  loggedIn = false,
+  profileVerification = false,
 }) {
   const { t, isRtl } = useLang();
 
@@ -41,7 +43,7 @@ export default function CallForm({
             value={form.callerName}
             onChange={(e) => onField('callerName', e.target.value)}
           />
-          <p className="field-hint">{t.callerNameHint}</p>
+          <p className="field-hint">{loggedIn ? t.callerNameProfileHint : t.callerNameHint}</p>
         </div>
 
         <div className="field">
@@ -163,6 +165,13 @@ export default function CallForm({
                 <span className="field-hint">{t.verifyToggleHint}</span>
               </span>
             </label>
+            {/* Premium + compleet profiel: verificatie hoeft niet opnieuw ingevoerd. */}
+            {profileVerification && (
+              <p className="verify-arranged">
+                <Icon name="check-circle" size={15} strokeWidth={2} />
+                {t.verifyProfileArranged}
+              </p>
+            )}
             {verifyNote && <p className="verify-note">{verifyNote}</p>}
           </div>
         )}

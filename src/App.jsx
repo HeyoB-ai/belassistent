@@ -53,7 +53,7 @@ function loadForm() {
 
 export default function App() {
   const { lang, setLang, t, isRtl } = useLang();
-  const { configured, user, session, isPremium, profileComplete } = useAuth();
+  const { configured, user, session, profile, isPremium, profileComplete } = useAuth();
 
   const [phase, setPhase] = useState(PHASE.FORM);
   const [view, setView] = useState(VIEW.CALL);
@@ -80,6 +80,28 @@ export default function App() {
       /* localStorage niet beschikbaar */
     }
   }, [form]);
+
+  // Prefill voor ingelogde gebruikers: vul de vaste velden automatisch uit het profiel,
+  // zodat een premium-lid ze niet per belopdracht opnieuw hoeft te typen. Alleen LEGE
+  // velden worden gevuld (nooit iets overschrijven wat de gebruiker zelf typte). Draait
+  // op wijziging van user/profile (na login/profiel-opslag), niet op elke toetsaanslag.
+  useEffect(() => {
+    if (!user) return;
+    const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
+    setForm((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      if (!prev.callerName && name) {
+        next.callerName = name;
+        changed = true;
+      }
+      if (!prev.email && user.email) {
+        next.email = user.email;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [user, profile]);
 
   // Documentrichting (RTL voor Arabisch) + taalattribuut.
   useEffect(() => {
@@ -287,6 +309,8 @@ export default function App() {
             onVerification={configured ? setVerification : undefined}
             verifyNote={verifyReason}
             verifyDisabled={verifyDisabled}
+            loggedIn={Boolean(user)}
+            profileVerification={Boolean(user) && isPremium && profileComplete}
           />
         )}
 
