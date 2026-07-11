@@ -1,6 +1,6 @@
 import twilio from 'twilio';
 import { getStore } from '@netlify/blobs';
-import { getAdmin, bearer, getUserFromToken } from '../shared/supabaseAdmin.js';
+import { adminConfigured, bearer, getUserFromToken, getProfile } from '../shared/supabaseAdmin.js';
 
 // POST /api/initiate-call
 // Body: { company, helpdesk_number, task, language, verification? }
@@ -39,19 +39,17 @@ export default async function handler(req) {
   // die de client via /api/call-status NIET terugkrijgt.
   let verificationData = null;
   if (wantsVerification) {
-    const admin = getAdmin();
-    if (!admin) {
+    if (!adminConfigured()) {
       return json({ error: 'Verificatie is niet beschikbaar: Supabase ontbreekt.', code: 'not_configured' }, 500);
     }
-    const user = await getUserFromToken(admin, bearer(req));
+    const user = await getUserFromToken(bearer(req));
     if (!user) {
       return json({ error: 'Log in om een verificatiegesprek te starten.', code: 'auth_required' }, 401);
     }
-    const { data: profile } = await admin
-      .from('profiles')
-      .select('first_name, last_name, postcode, house_number, birth_date, customer_numbers, is_premium')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const profile = await getProfile(
+      user.id,
+      'first_name, last_name, postcode, house_number, birth_date, customer_numbers, is_premium'
+    );
 
     if (!profile || !profile.is_premium) {
       return json({ error: 'Verificatiegesprekken vereisen een premium-account.', code: 'premium_required' }, 403);

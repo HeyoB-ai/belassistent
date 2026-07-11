@@ -1,4 +1,4 @@
-import { getAdmin, bearer, getUserFromToken } from '../shared/supabaseAdmin.js';
+import { adminConfigured, bearer, getUserFromToken, deleteProfile, deleteAuthUser } from '../shared/supabaseAdmin.js';
 
 // POST /api/delete-account
 // Header: Authorization: Bearer <supabase access token>
@@ -10,27 +10,25 @@ export default async function handler(req) {
     return json({ error: 'Method not allowed' }, 405);
   }
 
-  const admin = getAdmin();
-  if (!admin) {
+  if (!adminConfigured()) {
     return json({ error: 'Supabase is niet geconfigureerd op de server.' }, 500);
   }
 
-  const token = bearer(req);
-  const user = await getUserFromToken(admin, token);
+  const user = await getUserFromToken(bearer(req));
   if (!user) {
     return json({ error: 'Niet geautoriseerd.' }, 401);
   }
 
   // 1. Wis de profielrij expliciet.
-  const { error: delProfileErr } = await admin.from('profiles').delete().eq('user_id', user.id);
+  const { error: delProfileErr } = await deleteProfile(user.id);
   if (delProfileErr) {
-    return json({ error: `Profiel verwijderen mislukt: ${delProfileErr.message}` }, 500);
+    return json({ error: `Profiel verwijderen mislukt: ${delProfileErr}` }, 500);
   }
 
   // 2. Verwijder het auth-account zelf (cascade wist eventuele resterende rijen).
-  const { error: delUserErr } = await admin.auth.admin.deleteUser(user.id);
+  const { error: delUserErr } = await deleteAuthUser(user.id);
   if (delUserErr) {
-    return json({ error: `Account verwijderen mislukt: ${delUserErr.message}` }, 500);
+    return json({ error: `Account verwijderen mislukt: ${delUserErr}` }, 500);
   }
 
   return json({ ok: true });
